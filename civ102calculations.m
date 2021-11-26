@@ -10,7 +10,7 @@ P = 318;
 [SFD_PL, BMD_PL] = ApplyPL(550, P, x, SFD_PL, BMD_PL); % Construct SFD, BMD
 [SFD_PL, BMD_PL] = ApplyPL(L, P, x, SFD_PL, BMD_PL); % Construct SFD, BMD
 
-PlotDiagrams(x, L, SFD_PL, BMD_PL)
+%PlotDiagrams(x, L, SFD_PL, BMD_PL)
 
 %% 2. Define cross-sections
 % There are many (more elegant ways) to construct cross-section objects
@@ -36,6 +36,8 @@ GeometricInputs(end + 1, :) = [0, 100, 2.54, 100, 1.27, 80, 1.27, 400];
 GeometricInputs(end + 1, :) = [550, 100, 2.54, 120, 1.27, 80, 1.27, 400];
 GeometricInputs(end + 1, :) = [L, 100, 2.54, 100, 1.27, 80, 1.27, 400];
 
+
+
 % Optional but you need to ensure that your geometric inputs are correctly implemented
 % VisualizeBridge( {CrossSectionInputs} );
 %% 3. Define Material Properties
@@ -46,7 +48,9 @@ TauU = 4;
 TauG = 2;
 mu = 0.2;
 
-CrossSectionProperties = SectionProperties(GeometricInputs) % also make geometric inputs for every single x in thsi thing 
+CrossSectionProperties = SectionProperties(GeometricInputs, n) % also make geometric inputs for every single x in thsi thing 
+
+GeometricInputs
 
 %{
 %% 4. Calculate Failure Moments and Shear Forces
@@ -150,38 +154,34 @@ function CrossSectionProperties = SectionProperties(GeometricInputs, n) % includ
     ytop = zeros(n, 1); % ybar from top
     I = zeros(n, 1); % sum of individual i plus area times distance squared
     Q = zeros(n, 1); % sum of area times distance
-    CrossSectionProperties = zeroes(n, size(GeometricInputs, 1) - 1);
-    for i = 1 : size(GeometricInputs, 2) % get row # (for each cross section)
-        for j = GeometricInputs(i, 0) : GeometricInputs(i + 1, 0) % beginning of current cross section to beginning of next cross section
-            CrossSectionProperties(j, :) = GeometricInputs(i, 2 : end);
-            areas = zeroes(1, 3); % length three (top, web, bottom)
-            distances = zeroes(1, 3); % length three (distance from bot)
-            secondMomInert = zeroes(1, 3); % second moment of inertias for each part
-            areas(1) = GeometricInputs(2) * GeometricInputs(3);
-            areas(2) = GeometricInputs(5) * GeometricInputs(4);
-            areas(3) = GeometricInputs(6) * GeometricInputs(7);
-            distances(3) = GeometricInputs(7) / 2;
-            distances(2) = GeometricInputs(4) / 2 + distances(3);
-            distances(1) = GeometricInputs(3) / 2 + distances(2);
-            secondMomInert(1) = (GeometricInputs(2) * GeometricInputs(3) ^ 2) / 12;
-            secondMomInert(2) = (GeometricInputs(4) * GeometricInputs(5) ^ 2) / 12;
-            secondMomInert(3) = (GeometricInputs(6) * GeometricInputs(7) ^ 2) / 12;
+    geom = zeros(n, size(GeometricInputs, 2) - 1);
+    for i = 1 : (size(GeometricInputs, 1) - 1) % get row # (for each cross section)
+        for j = (GeometricInputs(i, 1) + 1) : GeometricInputs(i + 1, 1) % beginning of current cross section to beginning of next cross section
+            geom(j, :) = GeometricInputs(i, 2 : end);
+            areas = zeros(3, 1); % length three (top, web, bottom)
+            distances = zeros(3, 1); % length three (distance from bot)
+            secondMomInert = zeros(3, 1); % second moment of inertias for each part
+            areas(1) = GeometricInputs(i, 2) * GeometricInputs(i, 3);
+            areas(2) = GeometricInputs(i, 5) * GeometricInputs(i, 4);
+            areas(3) = GeometricInputs(i, 6) * GeometricInputs(i, 7);
+            distances(3) = GeometricInputs(i, 7) / 2;
+            distances(2) = GeometricInputs(i, 4) / 2 + distances(3);
+            distances(1) = GeometricInputs(i, 3) / 2 + distances(2);
+            secondMomInert(1) = (GeometricInputs(i, 2) * GeometricInputs(i, 3) ^ 2) / 12;
+            secondMomInert(2) = (GeometricInputs(i, 4) * GeometricInputs(i, 5) ^ 2) / 12;
+            secondMomInert(3) = (GeometricInputs(i, 6) * GeometricInputs(i, 7) ^ 2) / 12;
             for k = 1 : 3
-                ybot(i) = ybot(i) + areas(k) * distances(k);
+                ybot(j) = ybot(j) + areas(k) * distances(k);
             end
             for k = 1 : 3
-                I(i) = I(i) + secondMomInert(k) + areas(k) * distances(k) ^ 2; % do y not tdistance
-                Q(i) = Q(i) + areas(k) * distances(k);
+                I(j) = I(j + 1) + secondMomInert(k) + areas(k) * distances(k) ^ 2; % do y not tdistance
+                Q(j) = Q(j) + areas(k) * distances(k);
             end
-            ybot(i) = ybot / sum(areas);
-            ytop(i) = GeometricInputs(3) + GeometricInputs(4) + GeometricInputs(7) - ybot;
+            ybot(j) = ybot(j) / sum(areas);
+            ytop(j) = GeometricInputs(3) + GeometricInputs(4) + GeometricInputs(7) - ybot(j);
         end
     end
-    ybot = ybot';
-    ytop = ytop';
-    I = I';
-    Q = Q';
-    CrossSectionProperties = [ybot ytop I Q];
+    CrossSectionProperties = [geom ybot ytop I Q];
 end
 
 function [V_fail] = Vfail(SectionalProperties, TauU)
