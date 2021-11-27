@@ -70,7 +70,7 @@ CrossSectionProperties = SectionProperties(GeometricInputs, n);
 
 for i = 1 : size(GeometricInputs, 1) - 1
     cs = CrossSectionProperties(GeometricInputs(i, 1) + 1, :);
-    sprintf("Cross Section @ %d mm - ybot: %.3g mm ytop: %.3g mm I: %.3g mm^4 Q: %d", GeometricInputs(i, 1), cs(8:11))
+    sprintf("Cross Section @ %d mm - ybot: %.3g mm ytop: %.3g mm I: %.3g mm^4 Q: %.3g", GeometricInputs(i, 1), cs(8:11))
 end
     
 %cs1 = CrossSectionProperties(1, :);
@@ -252,9 +252,9 @@ function CrossSectionProperties = SectionProperties(GeometricInputs, n) % includ
         distances(3) = GeometricInputs(i, 7) / 2;
         distances(2) = GeometricInputs(i, 4) / 2 + GeometricInputs(i, 7);
         distances(1) = GeometricInputs(i, 3) / 2 + GeometricInputs(i, 4) + GeometricInputs(i, 7);
-        secondMomInert(1) = (GeometricInputs(i, 2) * GeometricInputs(i, 3) ^ 2) / 12;
-        secondMomInert(2) = (GeometricInputs(i, 5) * GeometricInputs(i, 4) ^ 2) / 12;
-        secondMomInert(3) = (GeometricInputs(i, 6) * GeometricInputs(i, 7) ^ 2) / 12;
+        secondMomInert(1) = (GeometricInputs(i, 2) * GeometricInputs(i, 3) ^ 3) / 12;
+        secondMomInert(2) = (GeometricInputs(i, 5) * GeometricInputs(i, 4) ^ 3) / 12;
+        secondMomInert(3) = (GeometricInputs(i, 6) * GeometricInputs(i, 7) ^ 3) / 12;
         ybot = 0; % sum of area times relative y divided by sum of area
         ytop = 0; % ybar from top
         I = 0; % sum of individual i plus area times distance squared
@@ -272,17 +272,16 @@ function CrossSectionProperties = SectionProperties(GeometricInputs, n) % includ
         ybot = ybot / (sum(areas) + areas(2) + 20 * 1.27); % hardcode glue tabs cause I am in pain
         ytop = GeometricInputs(i, 3) + GeometricInputs(i, 4) + GeometricInputs(i, 7) - ybot;
         yfla = distances(1) - ybot;
+        %yweb = distances(2) - ybot;
         yweb = (GeometricInputs(i, 4) - ybot + GeometricInputs(i, 7)) / 2;
-        ytab = yfla - 1.27 / 2;
+        ytab = yfla - (GeometricInputs(i, 3) / 2) - (1.27 / 2);
         for k = 1 : 3
             I = I + secondMomInert(k) + areas(k) * (distances(k) - ybot) ^ 2; % prbaobly somethign wrong with this calc
             if k == 2
-                I = I + secondMomInert(k) + areas(k) * yweb ^ 2; % lazy * 2
+                I = I + secondMomInert(k) + areas(k) * (distances(2) - ybot) ^ 2; % lazy * 2
                 I = I + (20 * 1.27 ^ 3) / 12 + 20 * 1.27 * ytab ^ 2; % hardcode glue tabs again
             end
-            % Q = Q + areas(k) * (distances(k) - ybot); % do Q just for areas above centroid
         end
-
         Qmax = areas(1) * yfla;
         Qmax = Qmax + GeometricInputs(i, 5) * 4 * yweb ^ 2; % multiply 2 times thickness of web by height (yweb * 2), multiply by distance (yweb)
         Qmax = Qmax + 20 * 1.27 * ytab;
