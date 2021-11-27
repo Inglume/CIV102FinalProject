@@ -11,10 +11,10 @@ P = 1; % CHANGE THIS probapbly or do some loop
 SFD2L = zeros(1, n);
 BMD2L = zeros(1, n);
 [SFD2L, BMD2L] = ApplyTwoLoads(1, x, SFD, BMD);
-%PlotDiagrams(x, L, SFD2L, BMD2L)
+PlotDiagrams(x, L, SFD2L, BMD2L)
 
 
-%[SFDTrain, BMDTrain] = ApplyTrainLoad(x, SFD, BMD);
+[SFDTrain, BMDTrain] = ApplyTrainLoad(x, SFD, BMD);
 %PlotTrain(x, L, SFDTrain, BMDTrain)
 
 
@@ -47,12 +47,6 @@ GeometricInputs(end + 1, :) = [1280, 100, 1.27, 72.46, 1.27, 80, 1.27, 30];
 GeometricInputs(end + 1, :) = [L, 100, 1.27, 72.46, 1.27, 80, 1.27, 30];
 
 % Design 1.0 woowwowow
-%{
-GeometricInputs = [];
-
-%GeometricInputs(end + 1, :) = [xc, bft, tft, hw, tw, bfb, tfb, a];
-insert more stuff here
-%}
 
 % Optional but you need to ensure that your geometric inputs are correctly implemented
 % VisualizeBridge( {CrossSectionInputs} );
@@ -66,29 +60,38 @@ mu = 0.2;
 
 CrossSectionProperties = SectionProperties(GeometricInputs, n);
 
-% find a way to automate this for ease of use
-
+%{
 for i = 1 : size(GeometricInputs, 1) - 1
     cs = CrossSectionProperties(GeometricInputs(i, 1) + 1, :);
     sprintf("Cross Section @ %d mm - ybot: %.3g mm ytop: %.3g mm I: %.3g mm^4 Q: %.3g", GeometricInputs(i, 1), cs(8:11))
 end
-    
+%}
+
 %cs1 = CrossSectionProperties(1, :);
 %cs2 = CrossSectionProperties(551, :);
 
 %sprintf("Cross Section 1 - ybot: %.3g mm ytop: %.3g mm I: %.3g mm^4 Q: %d", cs1(8:11))
 %sprintf("Cross Section 2 - ybot: %.3g mm ytop: %.3g mm I: %.3g mm^4 Q: %d", cs2(8:11))
 
-%{
+
+
 %% 4. Calculate Failure Moments and Shear Forces
-V_Mat = Vfail(CrossSectionInputs, TauU);
-V_Glue = VfailGlue(CrossSectionInputs, TauG);
-V_Buck = VfailBuck(CrossSectionInputs, E, mu );
-M_MatT = MfailMatT(CrossSectionInputs, SigT);
-M_MatC = MfailMatC(CrossSectionInputs, SigC);
-M_Buck1 = MfailBuck(CrossSectionInputs, E, mu, 1 );
-M_Buck2 = MfailBuck(CrossSectionInputs, E, mu, 2 );
-M_Buck3 = MfailBuck(CrossSectionInputs, E, mu, 3 );
+V_Mat = Vfail(CrossSectionProperties, TauU);
+V_Mat(1)
+V_Glue = VfailGlue(CrossSectionProperties, TauG);
+V_Glue(1)
+
+
+
+%{
+
+V_Buck = VfailBuck(CrossSectionProperties, E, mu );
+M_MatT = MfailMatT(CrossSectionProperties, SigT);
+M_MatC = MfailMatC(CrossSectionProperties, SigC);
+M_Buck1 = MfailBuck(CrossSectionProperties, E, mu, 1 );
+M_Buck2 = MfailBuck(CrossSectionProperties, E, mu, 2 );
+M_Buck3 = MfailBuck(CrossSectionProperties, E, mu, 3 );
+
 
 %% 4.7 Calculate Failure Load
 Pf = FailLoad(P, SFD_PL, BMD_PL, V_Mat, V_Glue, V_Buck, M_MatT, M_MatC, M_Buck1, M_Buck2, M_Buck3);
@@ -131,13 +134,13 @@ function [SFD, BMD] = ApplyTwoLoads(P, x, SFD, BMD) % P is force of each individ
     [SFD, BMD] = UpdateDiagrams(xP2, -P, x, SFD, BMD);
 end
 
-function [trainSFD, trainBMD] = ApplyTrainLoad(x, SFD, BMD)
+function [trainSFD, trainBMD] = ApplyTrainLoad(x, SFD, BMD) % get rid of SFD, BMD here
 % Constructs SFD and BMD from application of train Load. Assumes fixed location of supports
 %   Input: location and magnitude of point load. The previous SFD can be entered as input to
 % construct SFD of multiple point loads
 %   Output: SFD, BMD both 2-D arrays of length n and height i have no idea
 % need to account for support reaction forces too
-    P = 400;
+    P = 0.4;
     xA = 15; % location of support A
     xB = 1075; % location of support B
     trainLength = 856; % not including length past wheels at end
@@ -240,7 +243,7 @@ function CrossSectionProperties = SectionProperties(GeometricInputs, n) % includ
 % Calculates important sectional properties. Including but not limited to ybar, I, Q, etc.
 %   Input: Geometric Inputs. Format will depend on user
 %   Output: Sectional Properties at every value of x. Each property is a 1-D array of length n
-    sect = zeros(n, 4); % columns: ybot, ytop, I, Qmax (yfla, yweb, )
+    sect = zeros(n, 9); % columns: ybot, ytop, I, Qmax (yfla, yweb, )
     geom = zeros(n, size(GeometricInputs, 2) - 1);
     for i = 1 : (size(GeometricInputs, 1) - 1) % get row # (for each cross section)
         areas = zeros(1, 3); % length three (top, web, bottom)
@@ -258,10 +261,12 @@ function CrossSectionProperties = SectionProperties(GeometricInputs, n) % includ
         ybot = 0; % sum of area times relative y divided by sum of area
         ytop = 0; % ybar from top
         I = 0; % sum of individual i plus area times distance squared
+        Qmax = 0; % sum of area times distance
         yfla = 0; % distance from global centroid to centroid of flange above ybar
         yweb = 0; % distance from global centroid to centroid of web above ybar
-        ytab = 0;
-        Qmax = 0; % sum of area times distance
+        ytab = 0; % distance from global centroid to centroid of tab above ybar
+        yfgl = 0; % distance from glue to flange
+        Qglue = 0;% implement this stuf
         for k = 1 : 3
             ybot = ybot + areas(k) * distances(k);
             if k == 2
@@ -272,9 +277,9 @@ function CrossSectionProperties = SectionProperties(GeometricInputs, n) % includ
         ybot = ybot / (sum(areas) + areas(2) + 20 * 1.27); % hardcode glue tabs cause I am in pain
         ytop = GeometricInputs(i, 3) + GeometricInputs(i, 4) + GeometricInputs(i, 7) - ybot;
         yfla = distances(1) - ybot;
-        %yweb = distances(2) - ybot;
         yweb = (GeometricInputs(i, 4) - ybot + GeometricInputs(i, 7)) / 2;
         ytab = yfla - (GeometricInputs(i, 3) / 2) - (1.27 / 2);
+        yfgl = GeometricInputs(i, 3) / 2;
         for k = 1 : 3
             I = I + secondMomInert(k) + areas(k) * (distances(k) - ybot) ^ 2; % prbaobly somethign wrong with this calc
             if k == 2
@@ -285,41 +290,63 @@ function CrossSectionProperties = SectionProperties(GeometricInputs, n) % includ
         Qmax = areas(1) * yfla;
         Qmax = Qmax + GeometricInputs(i, 5) * 4 * yweb ^ 2; % multiply 2 times thickness of web by height (yweb * 2), multiply by distance (yweb)
         Qmax = Qmax + 20 * 1.27 * ytab;
+        Qglue = areas(1) * yfla;
         for j = (GeometricInputs(i, 1) + 1) : GeometricInputs(i + 1, 1) + 1 % beginning of current cross section to beginning of next cross section
             geom(j, :) = GeometricInputs(i, 2 : end);
             sect(j, 1) = ybot;
             sect(j, 2) = ytop;
             sect(j, 3) = I;
             sect(j, 4) = Qmax;
-            % yfla, yweb, ytab
+            sect(j, 5) = yfla;
+            sect(j, 6) = yweb;
+            sect(j, 7) = ytab;
+            sect(j, 8) = yfgl;
+            sect(j, 9) = Qglue;
         end
     end
     CrossSectionProperties = [geom sect];
 end
 
-function [V_fail] = Vfail(SectionalProperties, TauU)
+function [V_fail] = Vfail(CrossSectionProperties, TauU)
 % Calculates shear forces at every value of x that would cause a matboard shear failure
 %   Input: Sectional Properties (list of 1-D arrays), TauU (scalar material property)
 %   Output: V_fail a 1-D array of length n
-    I = {SectionalProperties};
-    b = {SectionalProperties};
-    Qcent = {SectionalProperties};
-    V_fail = TauU .* I .* b ./ Qcent;
+    %V_fail = zeroes(1, length(x));
+    I = CrossSectionProperties(:, 10);
+    b = CrossSectionProperties(:, 4) * 2;
+    Qcent = CrossSectionProperties(:, 11);
+    V_fail = I .* b ./ Qcent * TauU;
 end
 
-function [V_Buck] = VfailBuck(SectionalProperties, E, mu)
+function [V_failGlue] = VfailGlue(CrossSectionProperties, TauG)
+% Calculates shear forces at every value of x that would cause a glue shear failure
+%   Input: Sectional Properties (list of 1-D arrays), TauU (scalar material property)
+%   Output: V_fail a 1-D array of length n
+    I = CrossSectionProperties(:, 10);
+    b = CrossSectionProperties(:, 4) * 2 + 20;
+    Qglue = CrossSectionProperties(:, 16);
+    V_failGlue = I .* b ./ Qglue * TauG;
+end
+
+function [V_Buck] = VfailBuck(CrossSectionProperties, E, mu)  
 % Calculates shear forces at every value of x that would cause a shear buckling failure in the web
-%   Input: Sectional Properties (list of 1-D arrays), E, mu (material property)
-%   Output: V_Buck a 1-D array of length n
-    V_Buck = 0;
+% Input: Sectional Properties (list of 1-D arrays), E, mu (material property)
+    I = CrossSectionProperties(:, 10);
+    b = CrossSectionProperties(:, 4) * 2;
+    Qcent = CrossSectionProperties(:, 11);
+    h = CrossSectionProperties(:, 2) + CrossSectionProperties(:, 3) + CrossSectionProperties(:, 6);
+    a = CrossSectionProperties(:, 7);
+    TauCrit = ((5 .* (pi^2) .* E) ./ (12 .* (1 - (mu^2)))) .* ((1.27 ./ h) .^ 2 + (1.27 ./ a) .^ 2);
+    V_Buck = TauCrit .* I .* b ./ Qcent;
 end
 
-function [M_MatT] = MfailMatT(SectionalProperties, SigT, BMD)
+function [M_MatT] = MfailMatT(CrossSectionProperties, SigT, BMD)
 % Calculates bending moments at every value of x that would cause a matboard tension failure
 % Input: Sectional Properties (list of 1-D arrays), SigT (material property), BMD (1-D array)
 % Output: M_MatT a 1-D array of length n
 %[I, ybot, ytop] = SectionalProperties;
-    for i = 1 : length(x)
+    M_MatT = zeros(1, size(BMD, 2));
+    for i = 1 : size(BMD, 2)
         if BMD(i) > 0 % If the moment is positive, the tension failure will be at the bottom
             M_MatT(i) = SigT * I(i) / ybot(i);
         elseif BMD(i) < 0 % If the moment is negative, the tension failure will be at the top
@@ -328,26 +355,89 @@ function [M_MatT] = MfailMatT(SectionalProperties, SigT, BMD)
     end
 end
 
-function [M_MatT] = MfailMatC(SectionalProperties, SigC, BMD) % Similar to MfailMatT
-    M_MatT = 0;
+function [M_MatC] = MfailMatC(CrossSectionProperties, SigC, BMD) % Similar to MfailMatT
+    M_MatC = zeros(1, size(BMD, 2));
+    for i = 1 : size(BMD, 2)
+        if BMD(i) > 0 % If the moment is positive, the compression failure will be at the top
+            M_MatC(i) = SigC * I(i) / ytop(i);
+        elseif BMD(i) < 0 % If the moment is negative, the compression failure will be at the bottom
+            M_MatC(i) = -SigC * I(i) / ybot(i);
+        end
+    end
 end
 
-function [M_Buck] = MfailBuck(SectionalProperties, E, mu, BMD)
+function [M_Buck] = MfailBuck1(CrossSectionProperties, E, mu, BMD) % case 1, middle part of flange
 % Calculates bending moments at every value of x that would cause a buckling failure
 % Input: Sectional Properties (list of 1-D arrays), E, mu (material property), BMD (1-D array)
 % Output: M_MatBuck a 1-D array of length n
-    M_Buck = 0;
+    fail = zeros(1, size(BMD, 2));
+    for i = 1 : size(BMD, 2)
+        fail(i) = ((4*(pi^2)*(E))/(12*(1-(mu^2))))*((t/b(i))^2);
+        if yplate > 0
+            if BMD(i) > 0
+                M_Buck(i) = fail(i) * I(i) / yplate;
+            else
+                M_Buck(i) = 0;
+            end
+        elseif yplate < 0
+            if BMD(i) < 0
+                M_Buck(i) = fail(i) * I(i) / -yplate;
+            else
+                M_Buck(i) = 0;
+            end
+        end
+    end
 end
 
-
-function [Pf] = FailLoad(P, SFD, BMD, V_Mat, V_Buck, M_MatT, M_MatC, M_Buck1, M_Buck2, M_Buck3)
-% Calculates the magnitude of the load P that will cause one of the failure mechanisms to occur
-% Input: SFD, BMD under the currently applied points loads (P) (each 1-D array of length n)
-% {V_Mat, V_Glue, … M_MatT, M_MatC, … } (each 1-D array of length n)
-% Output: Failure Load value Pf
-    Pf = 0;
+function [M_Buck] = MfailBuck2(CrossSectionProperties, E, mu, BMD) % case 2, ends of flange
+% Calculates bending moments at every value of x that would cause a buckling failure
+% Input: Sectional Properties (list of 1-D arrays), E, mu (material property), BMD (1-D array)
+% Output: M_MatBuck a 1-D array of length n
+    fail = zeros(1, size(BMD, 2));    
+    for i = 1 : size(BMD, 2)
+        fail(i) = ((0.425*(pi^2)*(E))/(12*(1-(mu^2))))*((t/b(i))^2)
+        if yplate > 0
+            if BMD(i) > 0
+                M_Buck(i) = fail(i) * I(i) / yplate
+            else
+                M_Buck(i) = 0
+            end
+        elseif yplate < 0
+            if BMD(i) < 0
+                M_Buck(i) = fail(i) * I(i) / -yplate
+            else
+                M_Buck(i) = 0
+            end
+        end
+    end
 end
 
+function [M_Buck] = MfailBuck3(CrossSectionProperties, E, mu, BMD) % case 3, webs
+% Calculates bending moments at every value of x that would cause a buckling failure
+% Input: Sectional Properties (list of 1-D arrays), E, mu (material property), BMD (1-D array)
+% Output: M_MatBuck a 1-D array of length n
+    fail = zeros(1, size(BMD, 2));
+    for i = 1 : size(BMD, 2)
+        fail(i) = ((6*(pi^2)*(E))/(12*(1-(mu^2))))*((t/b(i))^2);
+        if yplate > 0
+            if BMD(i) > 0
+                M_Buck(i) = fail(i) * I(i) / yplate
+            else
+                M_Buck(i) = 0
+            end
+        else
+            if BMD(i) < 0
+                M_Buck(i) = fail(i) * I(i) / -yplate
+            else
+                M_Buck(i) = 0
+
+            end
+        end
+    end
+end
+%}
+
+%{
 function VisualizePL(x, SFD, BMD, V_Mat, V_Buck, M_MatT, M_MatC, M_Buck1, M_Buck2, M_Buck3, Pf)
 % Plots all outputs of design process
 end
@@ -358,3 +448,4 @@ function [Defls] = Deflections(x, BMD, I, E)
 % Output: Deflection for every value of x (1-D array) or for the midspan only
     Defls = 0;
 end
+%}
