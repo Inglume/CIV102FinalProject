@@ -13,7 +13,6 @@ BMD2L = zeros(1, n);
 [SFD2L, BMD2L] = ApplyTwoLoads(1, x, SFD, BMD);
 PlotDiagrams(x, L, SFD2L, BMD2L)
 
-
 [SFDTrain, BMDTrain] = ApplyTrainLoad(x, SFD, BMD);
 %PlotTrain(x, L, SFDTrain, BMDTrain)
 
@@ -77,17 +76,16 @@ end
 
 %% 4. Calculate Failure Moments and Shear Forces
 V_Mat = Vfail(CrossSectionProperties, TauU);
-V_Mat(1)
+V_Mat(1);
 V_Glue = VfailGlue(CrossSectionProperties, TauG);
-V_Glue(1)
-
-
-
+V_Glue(1);
+V_Buck = VfailBuck(CrossSectionProperties, E, mu);
+V_Buck
+M_MatT = MfailMatT(CrossSectionProperties, SigT, BMD);
+M_MatT(1);
+M_MatC = MfailMatC(CrossSectionProperties, SigC, BMD);
+M_MatC(1);
 %{
-
-V_Buck = VfailBuck(CrossSectionProperties, E, mu );
-M_MatT = MfailMatT(CrossSectionProperties, SigT);
-M_MatC = MfailMatC(CrossSectionProperties, SigC);
 M_Buck1 = MfailBuck(CrossSectionProperties, E, mu, 1 );
 M_Buck2 = MfailBuck(CrossSectionProperties, E, mu, 2 );
 M_Buck3 = MfailBuck(CrossSectionProperties, E, mu, 3 );
@@ -336,7 +334,9 @@ function [V_Buck] = VfailBuck(CrossSectionProperties, E, mu)
     Qcent = CrossSectionProperties(:, 11);
     h = CrossSectionProperties(:, 2) + CrossSectionProperties(:, 3) + CrossSectionProperties(:, 6);
     a = CrossSectionProperties(:, 7);
-    TauCrit = ((5 .* (pi^2) .* E) ./ (12 .* (1 - (mu^2)))) .* ((1.27 ./ h) .^ 2 + (1.27 ./ a) .^ 2);
+    t = CrossSectionProperties(:, 4);
+
+    TauCrit = ((5 .* (pi^2) .* E) ./ (12 .* (1 - (mu^2)))) .* ((t ./ h) .^ 2 + (t ./ a) .^ 2);
     V_Buck = TauCrit .* I .* b ./ Qcent;
 end
 
@@ -370,18 +370,23 @@ function [M_Buck] = MfailBuck1(CrossSectionProperties, E, mu, BMD) % case 1, mid
 % Calculates bending moments at every value of x that would cause a buckling failure
 % Input: Sectional Properties (list of 1-D arrays), E, mu (material property), BMD (1-D array)
 % Output: M_MatBuck a 1-D array of length n
+    
+    I = CrossSectionProperties(:, 10);
+    b = CrossSectionProperties(:, 4) * 2;
+    yfla = CrossSectionProperties(:, 12);    
+
     fail = zeros(1, size(BMD, 2));
     for i = 1 : size(BMD, 2)
         fail(i) = ((4*(pi^2)*(E))/(12*(1-(mu^2))))*((t/b(i))^2);
-        if yplate > 0
+        if yfla > 0
             if BMD(i) > 0
-                M_Buck(i) = fail(i) * I(i) / yplate;
+                M_Buck(i) = fail(i) * I(i) / yfla(i);
             else
                 M_Buck(i) = 0;
             end
-        elseif yplate < 0
+        elseif yfla < 0
             if BMD(i) < 0
-                M_Buck(i) = fail(i) * I(i) / -yplate;
+                M_Buck(i) = fail(i) * I(i) / -yfla(i);
             else
                 M_Buck(i) = 0;
             end
@@ -395,18 +400,18 @@ function [M_Buck] = MfailBuck2(CrossSectionProperties, E, mu, BMD) % case 2, end
 % Output: M_MatBuck a 1-D array of length n
     fail = zeros(1, size(BMD, 2));    
     for i = 1 : size(BMD, 2)
-        fail(i) = ((0.425*(pi^2)*(E))/(12*(1-(mu^2))))*((t/b(i))^2)
+        fail(i) = ((0.425*(pi^2)*(E))/(12*(1-(mu^2))))*((t/b(i))^2);
         if yplate > 0
             if BMD(i) > 0
-                M_Buck(i) = fail(i) * I(i) / yplate
+                M_Buck(i) = fail(i) * I(i) / yplate;
             else
-                M_Buck(i) = 0
+                M_Buck(i) = 0;
             end
         elseif yplate < 0
             if BMD(i) < 0
-                M_Buck(i) = fail(i) * I(i) / -yplate
+                M_Buck(i) = fail(i) * I(i) / -yplate;
             else
-                M_Buck(i) = 0
+                M_Buck(i) = 0;
             end
         end
     end
@@ -430,7 +435,6 @@ function [M_Buck] = MfailBuck3(CrossSectionProperties, E, mu, BMD) % case 3, web
                 M_Buck(i) = fail(i) * I(i) / -yplate
             else
                 M_Buck(i) = 0
-
             end
         end
     end
