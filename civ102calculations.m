@@ -1,5 +1,5 @@
 %% 0. Initialize Parameters
-L = 1310; % Length of bridge
+L = 1280; % Length of bridge
 n = L + 1; % Number of locations to evaluate bridge failure
 x = linspace(0, L, n); % Define x coordinate
 SFD = zeros(1, n); % Initialize SFD(x)
@@ -7,15 +7,11 @@ BMD = zeros(1, n); % Initialize SFD(x)
 
 %% 1. Point Loading Analysis (SFD, BMD)
 
-P = 1; % CHANGE THIS probapbly or do some loop
-%SFD2L = zeros(1, n);
-%BMD2L = zeros(1, n);
+P = 1; % temporary, just to help calculate Pfail for two point loads
 
 [SFD2L, BMD2L] = ApplyTwoLoads(1, x, SFD, BMD);
 
 [SFDTrain, BMDTrain] = ApplyTrainLoad(x);
-
-
 
 PlotDiagrams(x, L, SFD2L, BMD2L)
 %{
@@ -26,7 +22,6 @@ PlotTrain(x, L, SFDTrain, BMDTrain)
 
 SFDTrain = max(SFDTrain(1, :), SFDTrain(2, :));
 BMDTrain = max(BMDTrain(1, :), BMDTrain(2, :));
-
 
 %% 2. Define cross-sections
 
@@ -45,7 +40,7 @@ BMDTrain = max(BMDTrain(1, :), BMDTrain(2, :));
 %% UNCOMMENT THIS IF YOU WANNA SEE HOW THE OUTPUT SHOULD WORK
 % (each of the rows will have the same properties though since only a
 % changes over the distance)
-
+%{
 GeometricInputs = [];
 
 GeometricInputs(end + 1, :) = [0, 100, 1.27, 72.46, 1.27, 80, 1.27, 30];
@@ -56,13 +51,35 @@ GeometricInputs(end + 1, :) = [1060, 100, 1.27, 72.46, 1.27, 80, 1.27, 30];
 GeometricInputs(end + 1, :) = [1090, 100, 1.27, 72.46, 1.27, 80, 1.27, 160];
 GeometricInputs(end + 1, :) = [1280, 100, 1.27, 72.46, 1.27, 80, 1.27, 30];
 GeometricInputs(end + 1, :) = [L, 100, 1.27, 72.46, 1.27, 80, 1.27, 30];
+%}
+
 
 % Design 1.0
 
 % follow this format vv
 % GeometricInputs(end + 1, :) = [xc, bft, tft, hw, tw, bfb, tfb, a];
-%GeometricInputs = [];
 
+GeometricInputs = [];
+
+GeometricInputs(end + 1, :) = [0, 100, 2.54, 80, 1.27, 75, 1.27, 5]; % # thing with plate
+GeometricInputs(end + 1, :) = [5, 100, 2.54, 80, 1.27, 75, 1.27, 20]; % # thing with plate
+GeometricInputs(end + 1, :) = [25, 100, 2.54, 80, 1.27, 75, 1.27, 5]; % # thing with plate
+
+GeometricInputs(end + 1, :) = [30, 100, 2.54, 80, 1.27, 75, 0, 250]; % #1
+
+GeometricInputs(end + 1, :) = [280, 100, 2.54, 80, 1.27 * 3 / 2, 75, 0, 275]; % #2
+GeometricInputs(end + 1, :) = [555, 100, 2.54, 80, 1.27 * 3 / 2, 75, 0, 20]; % #2
+GeometricInputs(end + 1, :) = [575, 100, 2.54, 80, 1.27 * 3 / 2, 75, 0, 113]; % #2
+
+GeometricInputs(end + 1, :) = [688, 100, 2.54, 80, 1.27, 75, 0, 115]; % #1
+
+GeometricInputs(end + 1, :) = [803, 100, 2.54, 80 - 1.27, 1.27 * 3 / 2, 75, 2.54, 262]; % #3
+GeometricInputs(end + 1, :) = [1065, 100, 2.54, 80 - 1.27, 1.27 * 3 / 2, 75, 2.54, 20]; % #3
+GeometricInputs(end + 1, :) = [1085, 100, 2.54, 80 - 1.27, 1.27 * 3 / 2, 75, 2.54, 170]; % #3
+
+GeometricInputs(end + 1, :) = [1255, 100, 2.54, 80 - 1.27, 1.27, 75, 2.54, 20]; % #4
+GeometricInputs(end + 1, :) = [1275, 100, 2.54, 80 - 1.27, 1.27, 75, 2.54, 5]; % #4
+GeometricInputs(end + 1, :) = [L, 100, 2.54, 80 - 1.27, 1.27, 75, 2.54, 5]; % #4
 
 
 %% 3. Define Material Properties
@@ -84,69 +101,18 @@ end
 
 %% 4. Calculate Failure Moments and Shear Forces
 
-Fails = zeros(10, n);
-Fails(1, :) = Vfail(CrossSectionProperties, TauU); % V_Mat
-Fails(2, :) = VfailGlue(CrossSectionProperties, TauG);
-Fails(3, :) = VfailBuck(CrossSectionProperties, E, mu);
-Fails(4, :) = MfailMatT(CrossSectionProperties, SigT, BMD2L);
-Fails(5, :) = MfailMatC(CrossSectionProperties, SigC, BMD2L);
-Fails(6, :) = MfailBuck1(CrossSectionProperties, E, mu, BMD2L);
-Fails(7, :) = MfailBuck2(CrossSectionProperties, E, mu, BMD2L);
-Fails(8, :) = MfailBuck3(CrossSectionProperties, E, mu, BMD2L);
-Fails(9, :) = MfailBuck4(CrossSectionProperties, E, mu, BMD2L);
-Fails(9, 1000);
-Fails(10, :) = MfailBuck5(CrossSectionProperties, E, mu, BMD2L);
-Fails(10, 1000);
-
-%{
-V_Mat = Vfail(CrossSectionProperties, TauU);
-V_Mat(1);
-V_Glue = VfailGlue(CrossSectionProperties, TauG);
-V_Glue(1);
-V_Buck = VfailBuck(CrossSectionProperties, E, mu);
-V_Buck;
-M_MatT = MfailMatT(CrossSectionProperties, SigT, BMD2L);
-M_MatT(2);
-M_MatT(1000);
-M_MatC = MfailMatC(CrossSectionProperties, SigC, BMD2L);
-M_MatC(2);
-M_MatC(1000);
-M_Buck1 = MfailBuck1(CrossSectionProperties, E, mu, BMD2L);
-M_Buck1(1);
-M_Buck2 = MfailBuck2(CrossSectionProperties, E, mu, BMD2L);
-M_Buck2(1);
-M_Buck3 = MfailBuck3(CrossSectionProperties, E, mu, BMD2L);
-M_Buck3(1);
-%}
-
-%{
-V_Mat = Vfail(CrossSectionProperties, TauU);
-V_Mat(1);
-V_Glue = VfailGlue(CrossSectionProperties, TauG);
-V_Glue(1);
-V_Buck = VfailBuck(CrossSectionProperties, E, mu);
-V_Buck;
-M_MatT = MfailMatT(CrossSectionProperties, SigT, BMDTrain);
-M_MatT(2);
-M_MatT(1000);
-M_MatC = MfailMatC(CrossSectionProperties, SigC, BMDTrain);
-M_MatC(2);
-M_MatC(1000);
-M_Buck1 = MfailBuck1(CrossSectionProperties, E, mu, BMDTrain);
-M_Buck1(1);
-M_Buck2 = MfailBuck2(CrossSectionProperties, E, mu, BMDTrain);
-M_Buck2(1);
-M_Buck3 = MfailBuck3(CrossSectionProperties, E, mu, BMDTrain);
-M_Buck3(1);
-%}
+Fails = GetFails(CrossSectionProperties, TauU, TauG, E, mu, SigT, SigC, BMD2L);
 
 %% 4.7 Calculate Failure Load
 %Pf = FailLoad(SFD2L, BMD2L, V_Mat, V_Glue, V_Buck, M_MatT, M_MatC, M_Buck1, M_Buck2, M_Buck3);
-Pf = FailLoad(SFD2L, BMD2L, Fails(1, :), Fails(2, :), Fails(3, :), Fails(4, :), Fails(5, :), Fails(6, :), Fails(7, :), Fails(8, :), Fails(9, :), Fails(10, :))
+Pf = FailLoad(SFD2L, BMD2L, Fails);
 %Pf = FailLoad(SFDTrain, BMDTrain, V_Mat, V_Glue, V_Buck, M_MatT, M_MatC, M_Buck1, M_Buck2, M_Buck3)
 
 %{+
 %% Visualization
+
+Plot2L(x, L, Pf, CrossSectionProperties, TauU, TauG, E, mu, SigT, SigC)
+
 %VisualizePL(x, P, SFD_PL, BMD_PL, V_Mat, V_Glue, V_Buck, M_MatT, M_MatC, M_Buck1, M_Buck2, M_Buck3, Pf);
 %}
 
@@ -223,7 +189,7 @@ function [SFD, BMD] = UpdateDiagrams(xP, P, x, SFD, BMD)
     
     for i = xP + 2 : length(x)
         SFD(i) = SFD(i) + P;
-        BMD(i) = BMD(i - 1) + (SFD(i - 1) / 1000); % start changing BMD at (xP + 1) since moment at xP = 0 anyways relative to shear force
+        BMD(i) = BMD(i - 1) + SFD(i - 1); % start changing BMD at (xP + 1) since moment at xP = 0 anyways relative to shear force
     end
 end
 
@@ -426,32 +392,20 @@ function [M_Buck] = MfailBuck1(CrossSectionProperties, E, mu, BMD) % case 1, mid
 % Calculates bending moments at every value of x that would cause a buckling failure
 % Input: Sectional Properties (list of 1-D arrays), E, mu (material property), BMD (1-D array)
 % Output: M_MatBuck a 1-D array of length n
-
     M_Buck = zeros(1, size(BMD, 2));
     I = CrossSectionProperties(:, 10);
-    b = (80 - CrossSectionProperties(:, 4) .* 2); % THIS IS HARDCODED BEWAAARE
+    b = (75 - CrossSectionProperties(:, 4) .* 2); % THIS IS HARDCODED BEWAAARE
     yfla = CrossSectionProperties(:, 9);
     t = CrossSectionProperties(:, 4);
 
     fail = zeros(1, size(BMD, 2));
     for i = 1 : size(BMD, 2)
         fail(i) = ((4*(pi^2)*E)/(12*(1-(mu^2))))*((t(i)/b(i))^2);
-        %if yfla > 0
         if BMD(i) >= 0
             M_Buck(i) = fail(i) * I(i) / yfla(i);
         else
             M_Buck(i) = 0;
         end
-        %{
-elseif yfla < 0
-            if BMD(i) < 0
-                M_Buck(i) = fail(i) .* I(i) ./ -yfla(i);
-            else
-                M_Buck(i) = 0;
-            end
-                
-end
-        %}
     end
 end
 
@@ -479,7 +433,6 @@ function [M_Buck] = MfailBuck3(CrossSectionProperties, E, mu, BMD) % case 3, web
 % Calculates bending moments at every value of x that would cause a buckling failure
 % Input: Sectional Properties (list of 1-D arrays), E, mu (material property), BMD (1-D array)
 % Output: M_MatBuck a 1-D array of length n
-    
     I = CrossSectionProperties(:, 10);
     b = CrossSectionProperties(:, 9) - CrossSectionProperties(:, 2);
     yweb = CrossSectionProperties(:, 9) - CrossSectionProperties(:, 2);
@@ -500,7 +453,6 @@ function [M_Buck] = MfailBuck4 (CrossSectionProperties, E, mu, BMD) % case 3, we
 % Calculates bending moments at every value of x that would cause a buckling failure
 % Input: Sectional Properties (list of 1-D arrays), E, mu (material property), BMD (1-D array)
 % Output: M_MatBuck a 1-D array of length n
-    
     I = CrossSectionProperties(:, 10);
     b = CrossSectionProperties(:, 8) - CrossSectionProperties(:, 6); % y bot - bottom flange thickness
     t = CrossSectionProperties(:, 4);
@@ -537,88 +489,50 @@ function [M_Buck] = MfailBuck5(CrossSectionProperties, E, mu, BMD) % case 3, web
     end
 end
 
-function [Pfail] = FailLoad(SFD, BMD, Stuff)
-    
-    % FIRST GEt acutal force ttuff or whatever at each point
-    % then get min of abs of each
-    % then get min of the mins
-    mins = zeros(1, 10);
+function [Fails] = GetFails(CrossSectionProperties, TauU, TauG, E, mu, SigT, SigC, BMD)
+    Fails = zeros(10, size(BMD, 2));
+    Fails(1, :) = Vfail(CrossSectionProperties, TauU); % V_fail
+    Fails(2, :) = VfailGlue(CrossSectionProperties, TauG); % V_failGLue
+    Fails(3, :) = VfailBuck(CrossSectionProperties, E, mu); % V_buck
+    Fails(4, :) = MfailMatT(CrossSectionProperties, SigT, BMD); % M_MatT
+    Fails(5, :) = MfailMatC(CrossSectionProperties, SigC, BMD); % M_MatC
+    Fails(6, :) = MfailBuck1(CrossSectionProperties, E, mu, BMD); % M_Buck1
+    Fails(7, :) = MfailBuck2(CrossSectionProperties, E, mu, BMD); % M_Buck2
+    Fails(8, :) = MfailBuck3(CrossSectionProperties, E, mu, BMD); % M_Buck3
+    Fails(9, :) = MfailBuck4(CrossSectionProperties, E, mu, BMD); % M_Buck4
+    Fails(10, :) = MfailBuck5(CrossSectionProperties, E, mu, BMD); % M_Buck5
+end
 
+function [Pfail] = FailLoad(SFD, BMD, Fails)
+    mins = zeros(1, 10);
+    
     for i = 1 : 3
         for j = 1 : size(SFD, 2)
-            Stuff(i, j) = Stuff(i, j) / SFD(j);
+            Fails(i, j) = Fails(i, j) / SFD(j);
         end
     end
     for i = 4 : 10
         for j = 1 : size(SFD, 2)
-            Stuff(i, j) = Stuff(i, j) / BMD(j);
+            Fails(i, j) = Fails(i, j) / BMD(j);
         end
     end
-    for i = 6 : 10
-        for j = 1 : size(SFD, 2)
-            Stuff(i, j) = Stuff(i, j) / 10 ^ 3;
-        end
-    end
+    %for i = 6 : 10
+        %for j = 1 : size(SFD, 2)
+            %Fails(i, j) = Fails(i, j);
+        %end
+    %end
 
-    Stuff;
+    Fails;
 
-    Stuff(Stuff == 0) = 999999999;
+    Fails(Fails == 0) = 999999999;
 
     for i = 1 : 10
-        mins(i) = min(abs(Stuff(i, :)));
+        mins(i) = min(abs(Fails(i, :)));
     end
     
     mins;
 
-    %{
-    %SFD(SFD == 0) = 1;
-    %BMD(BMD == 0) = 1;
-    maxes = zeros(1, 10);
-    mins = zeros(1, 10);
-    %indMax = zeros(1, 8);
-    %indMin = zeros(1, 8);
-    [a, maxV] = max(SFD);
-    [a, minV] = min(SFD);
-    [a, maxM] = max(BMD);
-    %maxM = 565
-    %BMD(maxM)
-    [a, minM] = min(BMD);
-    %min(BMD)
-    fails = zeros(1, 10);
-    [maxes(1), a] = max(V_Mat);
-    [maxes(2), a] = max(V_Glue);
-    [maxes(3), a] = max(V_Buck);
-    [maxes(4), a] = max(M_MatT);
-    [maxes(5), a] = max(M_MatC);
-    [maxes(6), a] = max(M_Buck1);
-    [maxes(7), a] = max(M_Buck2);
-    [maxes(8), a] = max(M_Buck3);
-    [maxes(9), a] = max(M_Buck4);
-    [maxes(10), a] = max(M_Buck5)
-    [mins(1), a] = min(V_Mat);
-    [mins(2), a] = min(V_Glue);
-    [mins(3), a] = min(V_Buck);
-    [mins(4), a] = min(M_MatT);
-    [mins(5), a] = min(M_MatC);
-    [mins(6), a] = min(M_Buck1);
-    [mins(7), a] = min(M_Buck2);
-    [mins(8), a] = min(M_Buck3);
-    [mins(9), a] = min(M_Buck4);
-    [mins(10), a] = min(M_Buck5)
-    for i = 1 : 3
-        fails(i) = max(maxes(i) / SFD(maxV), mins(i) / -SFD(minV));
-    end
-    for i = 4 : 5
-        fails(i) = max(maxes(i) / BMD(maxM), mins(i) / -BMD(minM));
-    end
-    for i = 6 : 8
-        fails(i) = maxes(i) / BMD(maxM) / 10 ^ 3;
-    end
-    for i = 9 : 10
-        fails(i) = mins(i) / -BMD(minM) / 10 ^ 3;
-    end
-    %}
-    [Pfail, aaa] = min(mins)
+    [Pfail, aaa] = min(mins);
 end
 
 function [Defls] = Deflections(x, BMD, I, E)
@@ -646,6 +560,91 @@ function [Defls] = Deflections(x, BMD, I, E)
     Thing(545);
 end
 
-function PlotStuff()
-% gotta plot the fecal matter too
+function Plot2L(x, L, Pf, CrossSectionProperties, TauU, TauG, E, mu, SigT, SigC) % ADD LEGENDS
+    SFD = zeros(1, size(x, 2)); % Initialize SFD(x)
+    BMD = zeros(1, size(x, 2)); % Initialize SFD(x)
+    [SFD, BMD] = ApplyTwoLoads(Pf, x, SFD, BMD);
+    Fails = GetFails(CrossSectionProperties, TauU, TauG, E, mu, SigT, SigC, BMD);
+
+    subplot(2, 3, 1) % SFD
+    plot(x, SFD)
+    xlim([0 L])
+    title("Shear Force over Horizontal Distance")
+    xlabel("x (mm)")
+    ylabel("V (kN)")
+    ax = gca;
+    ax.XAxisLocation = 'origin';
+
+    subplot(2, 3, 2) % SFD w/ material and glue shear failure
+    plot(x, SFD)
+    hold on
+    plot(x, Fails(1, :))
+    plot(x, Fails(2, :))
+    plot(x, -Fails(1, :))
+    plot(x, -Fails(2, :))
+    hold off
+    xlim([0 L])
+    title("SFD vs. Material and Glue Shear Failures")
+    xlabel("x (mm)")
+    ylabel("V (kN)")
+    legend("SFD")
+    ax = gca;
+    ax.XAxisLocation = 'origin';
+
+    subplot(2, 3, 3) % SFD w/ shear buckling failure
+    plot(x, SFD)
+    hold on
+    plot(x, Fails(3, :))
+    plot(x, -Fails(3, :))
+    hold off
+    xlim([0 L])
+    title("SFD vs. Shear Buckling Failure")
+    xlabel("x (mm)")
+    ylabel("V (kN)")
+    ax = gca;
+    ax.XAxisLocation = 'origin';
+
+    subplot(2, 3, 4) % BMD
+    plot(x, BMD)
+    xlim([0 L])
+    title("Bending Moment over Horizontal Distance")
+    xlabel("x (mm)")
+    ylabel("M (kN m)")
+    ax = gca;
+    ax.XAxisLocation = 'origin';
+    set(ax, 'YDir','reverse') % may not want it reversed, personal preference
+    
+    subplot(2, 3, 5) % BMD w/ material moment failure
+    plot(x, BMD)
+    hold on
+    plot(x, Fails(4, :))
+    plot(x, Fails(5, :))
+    hold off
+    xlim([0 L])
+    title("BMD vs. Material Moment Failures")
+    xlabel("x (mm)")
+    ylabel("M (kN m)")
+    ax = gca;
+    ax.XAxisLocation = 'origin';
+    set(ax, 'YDir','reverse') % may not want it reversed, personal preference
+
+    subplot(2, 3, 6) % BMD w/ moment buckling failure (plate buckling)
+    plot(x, BMD)
+    hold on
+    plot(x, Fails(6, :))
+    plot(x, Fails(7, :))
+    plot(x, Fails(8, :))
+    plot(x, Fails(9, :))
+    plot(x, Fails(10, :))
+    hold off
+    xlim([0 L])
+    title("BMD vs. Plate Buckling Failures")
+    xlabel("x (mm)")
+    ylabel("M (kN m)")
+    ax = gca;
+    ax.XAxisLocation = 'origin';
+    set(ax, 'YDir','reverse') % may not want it reversed, personal preference
+
+    set(gcf, 'Name', 'CALCULATIONS') % name of window
 end
+
