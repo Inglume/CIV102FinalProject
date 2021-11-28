@@ -105,16 +105,17 @@ M_Buck2(1);
 M_Buck3 = MfailBuck3(CrossSectionProperties, E, mu, BMD2L);
 M_Buck3(1);
 
-%{
-%% 4.7 Calculate Failure Load
-Pf = FailLoad(P, SFD_PL, BMD_PL, V_Mat, V_Glue, V_Buck, M_MatT, M_MatC, M_Buck1, M_Buck2, M_Buck3);
 
+%% 4.7 Calculate Failure Load
+Pf = FailLoad(SFD2L, BMD2L, V_Mat, V_Glue, V_Buck, M_MatT, M_MatC, M_Buck1, M_Buck2, M_Buck3)
+
+%{
 %% Visualization
 VisualizePL(x, P, SFD_PL, BMD_PL, V_Mat, V_Glue, V_Buck, M_MatT, M_MatC, M_Buck1, M_Buck2, M_Buck3, Pf);
 %}
 
 %% 5. Curvature, Slope, Deflections
-%Defls = Deflections(x, BMDTrain, GeometricInputs(10), E);
+Defls = Deflections(x, BMDTrain, GeometricInputs(10), E);
 %% Functions
 
 function [SFD, BMD] = ApplyPL(xP, P, x, SFD, BMD) % don't need this
@@ -245,10 +246,6 @@ function PlotTrain (x, L, trainSFD, trainBMD) % include curvature diagram
     set(ax, 'YDir','reverse') % may not want it reversed, personal preference
     
     set(gcf, 'Name', 'Force and Moment Diagrams') % name of window
-end
-
-function VisualizeBridge(GeometricInputs)
-% Optional. Provides a graphical interpretation of user geometric inputs
 end
 
 % check this function
@@ -463,14 +460,35 @@ function [M_Buck] = MfailBuck3(CrossSectionProperties, E, mu, BMD) % case 3, web
     end
 end
 
+function [Pfail] = FailLoad(SFD, BMD, V_Mat, V_Glue, V_Buck, M_MatT, M_MatC, M_Buck1, M_Buck2, M_Buck3)
+    stuff = zeros(1, 8);
+    SFD(SFD == 0) = 1;
+    BMD(BMD == 0) = 1;
+    maxes = zeros(1, 8);
+    ind = zeros(1, 8);
+    fails = zeros(1, 8);
+    [maxes(1), ind(1)] = max(abs(V_Mat));
+    [maxes(2), ind(2)] = max(abs(V_Glue));
+    [maxes(3), ind(3)] = max(abs(V_Buck));
+    [maxes(4), ind(4)] = max(abs(M_MatT));
+    [maxes(5), ind(5)] = max(abs(M_MatC));
+    [maxes(6), ind(6)] = max(abs(M_Buck1));
+    [maxes(7), ind(7)] = max(abs(M_Buck2));
+    [maxes(8), ind(8)] = max(abs(M_Buck3));
+    for i = 1 : 8
+        fails(i) = maxes(i) / BMD(ind(i));
+    end
+    Pfail = max(fails) / 10 ^ 3;
+end
+
 function [Defls] = Deflections(x, BMD, I, E)
 % Calculates deflections
 % Input: I(1-D arrays), E (material property), BMD (1-D array)
 % Output: Deflection for every value of x (1-D array) or for the midspan only
     CurvD = BMD ./ I ./ E;
     Thing = zeros(1, size(x, 2));
-    for i = 17 : size(x, 2)
-        Thing(i) = Thing(i - 1) + (CurvD(i - 1) * (x(i) - 15)); % start changing BMD at (xP + 1) since moment at xP = 0 anyways relative to shear force
+    for i = 2 : size(x, 2)
+        Thing(i) = Thing(i - 1) + (CurvD(i - 1) * (x(i - 1) - 15)); % start changing BMD at (xP + 1) since moment at xP = 0 anyways relative to shear force
     end
     PlotDiagrams(x, size(x, 2) - 1, BMD, Thing)
     %Defls = (Thing(1075) / 2 - Thing(545)); % hardcode cause i'm cool
