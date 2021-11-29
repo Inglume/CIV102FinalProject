@@ -9,78 +9,67 @@ BMD = zeros(1, n); % Initialize SFD(x)
 
 P = 1; % temporary, just to help calculate Pfail for two point loads
 
-[SFD2L, BMD2L] = ApplyTwoLoads(1, x, SFD, BMD);
 
 [SFDTrain, BMDTrain] = ApplyTrainLoad(x);
+[SFD2L, BMD2L] = ApplyTwoLoads(1, x, SFD, BMD);
 
-PlotDiagrams(x, L, SFD2L, BMD2L)
-%{
-figure()
-[SFDTrain, BMDTrain] = ApplyTrainLoad(x, SFD, BMD);
 PlotTrain(x, L, SFDTrain, BMDTrain)
-%}
+figure()
+PlotDiagrams(x, L, SFD2L, BMD2L)
 
 SFDTrain = max(SFDTrain(1, :), SFDTrain(2, :));
 BMDTrain = max(BMDTrain(1, :), BMDTrain(2, :));
 
 %% 2. Define cross-sections
 
-%xc : Location, x, of cross-section change
-%bft : Top Flange Width
-%tft : Top Flange Thickness
-%hw : Web Height
-%tw : Web Thickness (Assuming 2 separate webs)
-%bfb : Bottom Flange Width
-%tfb : Bottom Flange Thickness
-%a : Diaphragm Spacing
-
+% xc : Location, x, of cross-section change
+% bft : Top Flange Width
+% tft : Top Flange Thickness
+% hw : Web Height
+% tw : Web Thickness (Assuming 2 separate webs)
+% bfb : Bottom Flange Width
+% tfb : Bottom Flange Thickness
+% a : Diaphragm Spacing
 
 % Design 0
 
 %% UNCOMMENT THIS IF YOU WANNA SEE HOW THE OUTPUT SHOULD WORK
 % (each of the rows will have the same properties though since only a
 % changes over the distance)
-%{
-GeometricInputs = [];
 
-GeometricInputs(end + 1, :) = [0, 100, 1.27, 72.46, 1.27, 80, 1.27, 30];
-GeometricInputs(end + 1, :) = [30, 100, 1.27, 72.46, 1.27, 80, 1.27, 520];
-GeometricInputs(end + 1, :) = [550, 100, 1.27, 72.46, 1.27, 80, 1.27, 30];
-GeometricInputs(end + 1, :) = [580, 100, 1.27, 72.46, 1.27, 80, 1.27, 480];
-GeometricInputs(end + 1, :) = [1060, 100, 1.27, 72.46, 1.27, 80, 1.27, 30];
-GeometricInputs(end + 1, :) = [1090, 100, 1.27, 72.46, 1.27, 80, 1.27, 160];
-GeometricInputs(end + 1, :) = [1280, 100, 1.27, 72.46, 1.27, 80, 1.27, 30];
-GeometricInputs(end + 1, :) = [L, 100, 1.27, 72.46, 1.27, 80, 1.27, 30];
-%}
+GeometricInputs0 = [];
 
+GeometricInputs0(end + 1, :) = [0, 100, 1.27, 72.46, 1.27, 80, 1.27, 30];
+GeometricInputs0(end + 1, :) = [30, 100, 1.27, 72.46, 1.27, 80, 1.27, 520];
+GeometricInputs0(end + 1, :) = [550, 100, 1.27, 72.46, 1.27, 80, 1.27, 30];
+GeometricInputs0(end + 1, :) = [580, 100, 1.27, 72.46, 1.27, 80, 1.27, 480];
+GeometricInputs0(end + 1, :) = [1060, 100, 1.27, 72.46, 1.27, 80, 1.27, 30];
+GeometricInputs0(end + 1, :) = [1090, 100, 1.27, 72.46, 1.27, 80, 1.27, 160];
+GeometricInputs0(end + 1, :) = [1280, 100, 1.27, 72.46, 1.27, 80, 1.27, 30];
+GeometricInputs0(end + 1, :) = [L, 100, 1.27, 72.46, 1.27, 80, 1.27, 30];
 
-% Design 1.0
+CrossSectionProperties0 = SectionProperties(GeometricInputs0, n);
 
-% follow this format vv
-% GeometricInputs(end + 1, :) = [xc, bft, tft, hw, tw, bfb, tfb, a];
+% Design 1.0000003
 
 GeometricInputs = [];
 
-GeometricInputs(end + 1, :) = [0, 100, 2.54, 80, 1.27, 75, 1.27, 5]; % # thing with plate
-GeometricInputs(end + 1, :) = [5, 100, 2.54, 80, 1.27, 75, 1.27, 20]; % # thing with plate
-GeometricInputs(end + 1, :) = [25, 100, 2.54, 80, 1.27, 75, 1.27, 5]; % # thing with plate
-
-GeometricInputs(end + 1, :) = [30, 100, 2.54, 80, 1.27, 75, 0, 250]; % #1
-
-GeometricInputs(end + 1, :) = [280, 100, 2.54, 80, 1.27 * 3 / 2, 75, 0, 275]; % #2
-GeometricInputs(end + 1, :) = [555, 100, 2.54, 80, 1.27 * 3 / 2, 75, 0, 20]; % #2
-GeometricInputs(end + 1, :) = [575, 100, 2.54, 80, 1.27 * 3 / 2, 75, 0, 113]; % #2
-
-GeometricInputs(end + 1, :) = [688, 100, 2.54, 80, 1.27, 75, 0, 115]; % #1
-
-GeometricInputs(end + 1, :) = [803, 100, 2.54, 80 - 1.27, 1.27 * 3 / 2, 75, 2.54, 262]; % #3
-GeometricInputs(end + 1, :) = [1065, 100, 2.54, 80 - 1.27, 1.27 * 3 / 2, 75, 2.54, 20]; % #3
-GeometricInputs(end + 1, :) = [1085, 100, 2.54, 80 - 1.27, 1.27 * 3 / 2, 75, 2.54, 170]; % #3
-
+GeometricInputs(end + 1, :) = [0, 100, 2.54, 80, 1.27, 75, 1.27, 5]; % CS #1 with plate
+GeometricInputs(end + 1, :) = [5, 100, 2.54, 80, 1.27, 75, 1.27, 20];
+GeometricInputs(end + 1, :) = [25, 100, 2.54, 80, 1.27, 75, 1.27, 5];
+GeometricInputs(end + 1, :) = [30, 100, 2.54, 80, 1.27, 75, 0, 250]; % CS #1
+GeometricInputs(end + 1, :) = [280, 100, 2.54, 80, 1.27 * 3 / 2, 75, 0, 275]; % CS #2
+GeometricInputs(end + 1, :) = [555, 100, 2.54, 80, 1.27 * 3 / 2, 75, 0, 20];
+GeometricInputs(end + 1, :) = [575, 100, 2.54, 80, 1.27 * 3 / 2, 75, 0, 113];
+GeometricInputs(end + 1, :) = [688, 100, 2.54, 80, 1.27, 75, 0, 115]; % CS #1
+GeometricInputs(end + 1, :) = [803, 100, 2.54, 80 - 1.27, 1.27 * 3 / 2, 75, 2.54, 262]; % CS #3
+GeometricInputs(end + 1, :) = [1065, 100, 2.54, 80 - 1.27, 1.27 * 3 / 2, 75, 2.54, 20];
+GeometricInputs(end + 1, :) = [1085, 100, 2.54, 80 - 1.27, 1.27 * 3 / 2, 75, 2.54, 170];
 GeometricInputs(end + 1, :) = [1255, 100, 2.54, 80 - 1.27, 1.27, 75, 2.54, 20]; % #4
-GeometricInputs(end + 1, :) = [1275, 100, 2.54, 80 - 1.27, 1.27, 75, 2.54, 5]; % #4
-GeometricInputs(end + 1, :) = [L, 100, 2.54, 80 - 1.27, 1.27, 75, 2.54, 5]; % #4
+GeometricInputs(end + 1, :) = [1275, 100, 2.54, 80 - 1.27, 1.27, 75, 2.54, 5];
+GeometricInputs(end + 1, :) = [L, 100, 2.54, 80 - 1.27, 1.27, 75, 2.54, 5];
 
+CrossSectionProperties = SectionProperties(GeometricInputs, n);
 
 %% 3. Define Material Properties
 SigT = 30; % tensile stress
@@ -90,34 +79,27 @@ TauU = 4;
 TauG = 2;
 mu = 0.2;
 
-CrossSectionProperties = SectionProperties(GeometricInputs, n);
-
-%{
-for i = 1 : size(GeometricInputs, 1) - 1
-    cs = CrossSectionProperties(GeometricInputs(i, 1) + 1, :);
-    sprintf("Cross Section @ %d mm - ybot: %.3g mm ytop: %.3g mm I: %.3g mm^4 Qmax: %.3g Qglue: %.3g ", GeometricInputs(i, 1), cs(8:11), cs(16))
+for i = 1 : size(GeometricInputs0, 1) - 1
+    cs = CrossSectionProperties0(GeometricInputs0(i, 1) + 1, :);
+    sprintf("Cross Section @ %d mm - ybot: %.3g mm ytop: %.3g mm I: %.3g mm^4 Qmax: %.3g Qglue: %.3g ", GeometricInputs0(i, 1), cs(8:11), cs(16))
 end
-%}
+
 
 %% 4. Calculate Failure Moments and Shear Forces
 
+Fails0 = GetFails(CrossSectionProperties0, TauU, TauG, E, mu, SigT, SigC, BMD2L);
 Fails = GetFails(CrossSectionProperties, TauU, TauG, E, mu, SigT, SigC, BMD2L);
 
 %% 4.7 Calculate Failure Load
-%Pf = FailLoad(SFD2L, BMD2L, V_Mat, V_Glue, V_Buck, M_MatT, M_MatC, M_Buck1, M_Buck2, M_Buck3);
+Pf0 = FailLoad(SFD2L, BMD2L, Fails0);
 Pf = FailLoad(SFD2L, BMD2L, Fails);
-%Pf = FailLoad(SFDTrain, BMDTrain, V_Mat, V_Glue, V_Buck, M_MatT, M_MatC, M_Buck1, M_Buck2, M_Buck3)
 
-%{+
-%% Visualization
-
+Plot2L(x, L, Pf0, CrossSectionProperties, TauU, TauG, E, mu, SigT, SigC)
 Plot2L(x, L, Pf, CrossSectionProperties, TauU, TauG, E, mu, SigT, SigC)
-
-%VisualizePL(x, P, SFD_PL, BMD_PL, V_Mat, V_Glue, V_Buck, M_MatT, M_MatC, M_Buck1, M_Buck2, M_Buck3, Pf);
-%}
 
 %% 5. Curvature, Slope, Deflections
 %Defls = Deflections(x, BMDTrain, GeometricInputs(10), E);
+
 %% Functions
 
 function [SFD, BMD] = ApplyPL(xP, P, x, SFD, BMD) % don't need this
@@ -213,7 +195,7 @@ function PlotDiagrams(x, L, SFD, BMD) % include curvature diagram
     ax.XAxisLocation = 'origin';
     set(ax, 'YDir','reverse') % may not want it reversed, personal preference
     
-    set(gcf, 'Name', 'Force and Moment Diagrams') % name of window
+    set(gcf, 'Name', 'SFD, BMD of Load Case #2 (two point load)') % name of window
 end
 
 function PlotTrain (x, L, trainSFD, trainBMD) % include curvature diagram
@@ -247,7 +229,7 @@ function PlotTrain (x, L, trainSFD, trainBMD) % include curvature diagram
     ax.XAxisLocation = 'origin';
     set(ax, 'YDir','reverse') % may not want it reversed, personal preference
     
-    set(gcf, 'Name', 'Force and Moment Diagrams') % name of window
+    set(gcf, 'Name', 'SFD, BMD of Load Case #1 (train)') % name of window
 end
 
 % check this function
@@ -516,15 +498,8 @@ function [Pfail] = FailLoad(SFD, BMD, Fails)
             Fails(i, j) = Fails(i, j) / BMD(j);
         end
     end
-    %for i = 6 : 10
-        %for j = 1 : size(SFD, 2)
-            %Fails(i, j) = Fails(i, j);
-        %end
-    %end
 
-    Fails;
-
-    Fails(Fails == 0) = 999999999;
+    Fails(Fails == 0) = 999999999; % i'm so cool
 
     for i = 1 : 10
         mins(i) = min(abs(Fails(i, :)));
