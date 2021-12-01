@@ -90,20 +90,20 @@ end
 FailsT0 = GetFails(CrossSectionProperties0, TauU, TauG, E, mu, SigT, SigC, BMDTrain); % train load fails for design 0
 FailsT = GetFails(CrossSectionProperties, TauU, TauG, E, mu, SigT, SigC, BMDTrain); % train load fails for improved design
 
-FailsT0Positive = FailsT0(:, 100) % train fails at positive moment (design 0)
-FailsT0Negative = FailsT0(:, 1100) % train fails at negative moment (design 0)
+FailsT0Positive = FailsT0(:, 100) % Outputs train fails at positive moment (design 0)
+FailsT0Negative = FailsT0(:, 1100) % Outputs train fails at negative moment (design 0)
 
-FailsTPositive = FailsT(:, 16) % train fails at positive moment (improved design)
-FailsTNegative = FailsT(:, 1100) % train fails at negative moment (improved design)
+FailsTPositive = FailsT(:, 16) % Outputs train fails at positive moment (improved design)
+FailsTNegative = FailsT(:, 1100) % Outputs train fails at negative moment (improved design)
 
 Fails20 = GetFails(CrossSectionProperties0, TauU, TauG, E, mu, SigT, SigC, BMD2L); % two point load fails for design 0
 Fails2 = GetFails(CrossSectionProperties, TauU, TauG, E, mu, SigT, SigC, BMD2L); % two point load fails for improved design
 
-Fails20Positive = Fails20(:, 100) % two point fails at positive moment (design 0)
-Fails20Negative = Fails20(:, 1100) % two point fails at negative moment (design 0)
+Fails20Positive = Fails20(:, 100) % Outputs two point fails at positive moment (design 0)
+Fails20Negative = Fails20(:, 1100) % Outputs two point fails at negative moment (design 0)
 
-Fails2Positive = Fails2(:, 16) % two point fails at positive moment (improved design)
-Fails2Negative = Fails2(:, 1100) % two point fails at negative moment (improved design)
+Fails2Positive = Fails2(:, 16) % Outputs two point fails at positive moment (improved design)
+Fails2Negative = Fails2(:, 1100) % Outputs two point fails at negative moment (improved design)
 
 %% 4.7 Calculate Failure Load
 % 4.7 a.
