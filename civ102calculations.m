@@ -16,8 +16,8 @@ PlotDTrain(x, L, SFDTrain, BMDTrain) % plot train load
 figure()
 PlotD2(x, L, SFD2L, BMD2L) % plot two point load (with 1 N total)
 
-SFDTrain = max(SFDTrain(1, :), SFDTrain(2, :)); % combine two SFDs
-BMDTrain = max(BMDTrain(1, :), BMDTrain(2, :)); % combine two BMDs
+%SFDTrain = max(SFDTrain(1, :), SFDTrain(2, :)); % combine two SFDs
+%BMDTrain = max(BMDTrain(1, :), BMDTrain(2, :)); % combine two BMDs
 
 %% 2. Define cross-sections
 
@@ -80,21 +80,30 @@ end
 %% 4. Calculate Failure Moments and Shear Forces
 
 % Fails: length 10 array for all values for failure force/moment (including 5 cases for flexural buckling failure)
-Fails0 = GetFails(CrossSectionProperties0, TauU, TauG, E, mu, SigT, SigC, BMD2L); % fails for design 0
-Fails = GetFails(CrossSectionProperties, TauU, TauG, E, mu, SigT, SigC, BMD2L); % fails for improved design
+FailsT0 = GetFails(CrossSectionProperties0, TauU, TauG, E, mu, SigT, SigC, BMDTrain); % two point fails for design 0
+FailsT = GetFails(CrossSectionProperties, TauU, TauG, E, mu, SigT, SigC, BMDTrain); % two point fails for improved design
+
+Fails20 = GetFails(CrossSectionProperties0, TauU, TauG, E, mu, SigT, SigC, BMD2L); % two point fails for design 0
+Fails2 = GetFails(CrossSectionProperties, TauU, TauG, E, mu, SigT, SigC, BMD2L); % two point fails for improved design
+
 
 %% 4.7 Calculate Failure Load
 
 % 4.7 b.
-[Pcap0 FailureMechT0] = FailLoad(SFDTrain, BMDTrain, Fails0); % capacity load for design 0
-[Pcap FailureMechT] = FailLoad(SFDTrain, BMDTrain, Fails); % capacity load for improved design
+[Pcap0(1) FailureMechT0(1)] = FailLoad(SFDTrain(1, :), BMDTrain, FailsT0) % capacity load for design 0
+[Pcap0(2) FailureMechT0(2)] = FailLoad(SFDTrain(2, :), BMDTrain, FailsT0) % capacity load for design 0
+Pcap0 = min(Pcap0(1), Pcap0(2))
+%{
+[Pcap(1) FailureMechT(1)] = FailLoad(SFDTrain(1, :), BMDTrain, FailsT); % capacity load for improved design
+[Pcap(2) FailureMechT(2)] = FailLoad(SFDTrain(2, :), BMDTrain, FailsT); % capacity load for improved design
+Pcap = min(Pcap(1), Pcap(2))
 
-[Pf0 FailureMech20] = FailLoad(SFD2L, BMD2L, Fails0) % failure load for design 0
-[Pf FailureMech2] = FailLoad(SFD2L, BMD2L, Fails) % failure load for improved design
-
+[Pf0 FailureMech20] = FailLoad(SFD2L, BMD2L, Fails20) % failure load for design 0
+[Pf FailureMech2] = FailLoad(SFD2L, BMD2L, Fails2) % failure load for improved design
+%}
 % 4.7 a.
-FOS0 = Pcap0 / 0.4 % design 0 capacity load / demand load
-FOS = Pcap / 0.4 % improved design capacity load / demand load
+FOS0 = Pcap0 % design 0 capacity load / demand load
+FOS = Pcap % improved design capacity load / demand load
 
 % train plots
 FullPlotTrain(x, FOS0, L, CrossSectionProperties0, TauU, TauG, E, mu, SigT, SigC)
@@ -545,7 +554,7 @@ function [Defl] = Deflection(I)
 % Output: Deflection for midspan
     % HARDCODE THIS SHcrap
     
-    deflPerI = 582.400
+    deflPerI = 582.400;
 
     Defl = deflPerI / I(1) % this will not work but it's a placeholder for now
     % or spew bs here vv
@@ -640,7 +649,7 @@ function FullPlot2(x, L, Pf, CrossSectionProperties, TauU, TauG, E, mu, SigT, Si
     title("BMD vs. Flexural Moment Failures")
     xlabel("x (mm)")
     ylabel("M (N mm)")
-    legend("BMD", "Tension Moment", "Compression Moment")
+    legend("BMD", "Tension Moment", "Compression Moment", 'Location', "southeast")
     ax = gca;
     ax.XAxisLocation = 'origin';
     set(ax, 'YDir','reverse') % may not want it reversed, personal preference
@@ -653,6 +662,7 @@ function FullPlot2(x, L, Pf, CrossSectionProperties, TauU, TauG, E, mu, SigT, Si
     plot(x, Fails(8, :), "b")
     plot(x, Fails(9, :), "y")
     plot(x, Fails(10, :), "m")
+    plot(x, zeros(1, L + 1), "k")
     hold off
     xlim([0 L])
     title("BMD vs. Plate Buckling Failures")
@@ -669,14 +679,14 @@ function FullPlotTrain(x, FOS, L, CrossSectionProperties, TauU, TauG, E, mu, Sig
     %BMD = zeros(1, size(x, 2));
     [SFD, BMD] = ApplyTrainLoad(x);
 
-    SFD = max(SFD(1, :), SFD(2, :)); % combine two SFDs
-    BMD = max(BMD(1, :), BMD(2, :)); % combine two BMDs
+    %SFD = max(SFD(1, :), SFD(2, :)); % combine two SFDs
+    %BMD = max(BMD(1, :), BMD(2, :)); % combine two BMDs
 
     SFDBig = SFD .* FOS;
     BMDBig = BMD .* FOS;
 
-    SFD
-    SFDBig
+    SFD;
+    SFDBig;
 
     %% GOTTA FIX THIS SFDBIG DOESNOT PLOT PROGRPERly
 
@@ -692,7 +702,7 @@ function FullPlotTrain(x, FOS, L, CrossSectionProperties, TauU, TauG, E, mu, Sig
     title("Shear Force over Horizontal Distance")
     xlabel("x (mm)")
     ylabel("V (N)")
-    legend("SFD", "SFD w/ FOS")
+    legend("SFD", "", "SFD w/ FOS")
     ax = gca;
     ax.XAxisLocation = 'origin';
 
@@ -709,7 +719,7 @@ function FullPlotTrain(x, FOS, L, CrossSectionProperties, TauU, TauG, E, mu, Sig
     title("SFD vs. Material and Glue Shear Failures")
     xlabel("x (mm)")
     ylabel("V (N)")
-    legend("SFD", "SFD w/ FOS", "Material Shear", "Glue Shear")
+    legend("SFD", "", "SFD w/ FOS", "", "Material Shear", "Glue Shear")
     ax = gca;
     ax.XAxisLocation = 'origin';
 
@@ -724,7 +734,7 @@ function FullPlotTrain(x, FOS, L, CrossSectionProperties, TauU, TauG, E, mu, Sig
     title("SFD vs. Shear Buckling Failure")
     xlabel("x (mm)")
     ylabel("V (N)")
-    legend("SFD", "SFD w/ FOS", "Shear Buck.")
+    legend("SFD", "", "SFD w/ FOS", "", "Shear Buck.")
     ax = gca;
     ax.XAxisLocation = 'origin';
 
@@ -737,7 +747,7 @@ function FullPlotTrain(x, FOS, L, CrossSectionProperties, TauU, TauG, E, mu, Sig
     title("Bending Moment over Horizontal Distance")
     xlabel("x (mm)")
     ylabel("M (N mm)")
-    legend("BMD", "BMD w/ FOS")
+    legend("BMD", "", "BMD w/ FOS")
     ax = gca;
     ax.XAxisLocation = 'origin';
     set(ax, 'YDir','reverse') % may not want it reversed, personal preference
@@ -753,7 +763,7 @@ function FullPlotTrain(x, FOS, L, CrossSectionProperties, TauU, TauG, E, mu, Sig
     title("BMD vs. Flexural Moment Failures")
     xlabel("x (mm)")
     ylabel("M (N mm)")
-    legend("BMD", "BMD w/ FOS", "Tension Moment", "Compression Moment")
+    legend("BMD", "", "BMD w/ FOS", "", "Tension Moment", "Compression Moment", 'Location', "southeast")
     ax = gca;
     ax.XAxisLocation = 'origin';
     set(ax, 'YDir','reverse') % may not want it reversed, personal preference
@@ -767,12 +777,13 @@ function FullPlotTrain(x, FOS, L, CrossSectionProperties, TauU, TauG, E, mu, Sig
     plot(x, Fails(8, :), "b")
     plot(x, Fails(9, :), "y")
     plot(x, Fails(10, :), "m")
+    plot(x, zeros(1, L + 1), "k")
     hold off
     xlim([0 L])
     title("BMD vs. Plate Buckling Failures")
     xlabel("x (mm)")
     ylabel("M (N mm)")
-    legend("BMD", "BMD w/ FOS", "Mid Flange Buck.", "Side Flange Buck.", "Top Web Buck.", "Bottom Web Buck.", "Bottom Flange Buck.", 'Location', "southeast")
+    legend("BMD", "", "BMD w/ FOS", "", "Mid Flange Buck.", "Side Flange Buck.", "Top Web Buck.", "Bottom Web Buck.", "Bottom Flange Buck.", 'Location', "southeast")
     ax = gca;
     ax.XAxisLocation = 'origin';
     set(ax, 'YDir','reverse') % may not want it reversed, personal preference
