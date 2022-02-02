@@ -566,8 +566,9 @@ function Plot2L(x, L, Pf, CrossSectionProperties, TauU, TauG, E, mu, SigT, SigC)
     [SFD, BMD] = ApplyTwoLoads(Pf, x, SFD, BMD);
     Fails = GetFails(CrossSectionProperties, TauU, TauG, E, mu, SigT, SigC, BMD);
 
+    figure()
     subplot(2, 3, 1) % SFD
-    plot(x, SFD)
+    plot(x, SFD, "k")
     xlim([0 L])
     title("Shear Force over Horizontal Distance")
     xlabel("x (mm)")
@@ -576,36 +577,37 @@ function Plot2L(x, L, Pf, CrossSectionProperties, TauU, TauG, E, mu, SigT, SigC)
     ax.XAxisLocation = 'origin';
 
     subplot(2, 3, 2) % SFD w/ material and glue shear failure
-    plot(x, SFD)
+    plot(x, SFD, "k")
     hold on
-    plot(x, Fails(1, :))
-    plot(x, Fails(2, :))
-    plot(x, -Fails(1, :))
-    plot(x, -Fails(2, :))
+    plot(x, Fails(1, :), "r")
+    plot(x, Fails(2, :), "g")
+    plot(x, -Fails(1, :), "r")
+    plot(x, -Fails(2, :), "g")
     hold off
     xlim([0 L])
     title("SFD vs. Material and Glue Shear Failures")
     xlabel("x (mm)")
     ylabel("V (kN)")
-    legend("SFD")
+    legend("SFD", "Material Shear", "Glue Shear")
     ax = gca;
     ax.XAxisLocation = 'origin';
 
     subplot(2, 3, 3) % SFD w/ shear buckling failure
-    plot(x, SFD)
+    plot(x, SFD, "k")
     hold on
-    plot(x, Fails(3, :))
-    plot(x, -Fails(3, :))
+    plot(x, Fails(3, :), "r")
+    plot(x, -Fails(3, :), "r")
     hold off
     xlim([0 L])
     title("SFD vs. Shear Buckling Failure")
     xlabel("x (mm)")
     ylabel("V (kN)")
+    legend("SFD", "Shear Buck.")
     ax = gca;
     ax.XAxisLocation = 'origin';
 
     subplot(2, 3, 4) % BMD
-    plot(x, BMD)
+    plot(x, BMD, "k")
     xlim([0 L])
     title("Bending Moment over Horizontal Distance")
     xlabel("x (mm)")
@@ -615,32 +617,34 @@ function Plot2L(x, L, Pf, CrossSectionProperties, TauU, TauG, E, mu, SigT, SigC)
     set(ax, 'YDir','reverse') % may not want it reversed, personal preference
     
     subplot(2, 3, 5) % BMD w/ material moment failure
-    plot(x, BMD)
+    plot(x, BMD, "k")
     hold on
-    plot(x, Fails(4, :))
-    plot(x, Fails(5, :))
+    plot(x, Fails(4, :), "r")
+    plot(x, Fails(5, :), "g")
     hold off
     xlim([0 L])
     title("BMD vs. Material Moment Failures")
     xlabel("x (mm)")
     ylabel("M (kN m)")
+    legend("BMD", "Flange Moment", "Web Moment")
     ax = gca;
     ax.XAxisLocation = 'origin';
     set(ax, 'YDir','reverse') % may not want it reversed, personal preference
 
     subplot(2, 3, 6) % BMD w/ moment buckling failure (plate buckling)
-    plot(x, BMD)
+    plot(x, BMD, "k")
     hold on
-    plot(x, Fails(6, :))
-    plot(x, Fails(7, :))
-    plot(x, Fails(8, :))
-    plot(x, Fails(9, :))
-    plot(x, Fails(10, :))
+    plot(x, Fails(6, :), "r")
+    plot(x, Fails(7, :), "g")
+    plot(x, Fails(8, :), "b")
+    plot(x, Fails(9, :), "y")
+    plot(x, Fails(10, :), "m")
     hold off
     xlim([0 L])
     title("BMD vs. Plate Buckling Failures")
     xlabel("x (mm)")
     ylabel("M (kN m)")
+    legend("SFD", "Plate #1", "Plate #2", "Plate #3", "Plate #4", "Plate #5")
     ax = gca;
     ax.XAxisLocation = 'origin';
     set(ax, 'YDir','reverse') % may not want it reversed, personal preference
