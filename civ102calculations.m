@@ -1,12 +1,12 @@
 %% 0. Initialize Parameters
-L = 1250; % Length of bridge
+L = 1310; % Length of bridge
 n = L + 1; % Number of locations to evaluate bridge failure
 x = linspace(0, L, n); % Define x coordinate
 SFD_PL = zeros(1, n); % Initialize SFD(x)
 BMD_PL = zeros(1, n); % Initialize SFD(x)
 
 %% 1. Point Loading Analysis (SFD, BMD)
-P = 318;
+P = 318; % CHANGE THIS probapbly
 [SFD_PL, BMD_PL] = ApplyPL(550, P, x, SFD_PL, BMD_PL); % Construct SFD, BMD
 [SFD_PL, BMD_PL] = ApplyPL(L, P, x, SFD_PL, BMD_PL); % Construct SFD, BMD
 
@@ -32,9 +32,19 @@ a = [400 400 400]; % Diaphragm Spacing
 % tried implementing in another way, wehre each row corresponds to
 % different cross section
 
-GeometricInputs(end + 1, :) = [0, 100, 2.54, 100, 1.27, 80, 1.27, 400];
-GeometricInputs(end + 1, :) = [550, 100, 2.54, 120, 1.27, 80, 1.27, 400];
-GeometricInputs(end + 1, :) = [L, 100, 2.54, 100, 1.27, 80, 1.27, 400];
+%GeometricInputs(end + 1, :) = [0, 100, 2.54, 100, 1.27, 80, 1.27, 400]; % add something for length of glue tabs on top and bottom (thickness should be same as thickness of webs
+%GeometricInputs(end + 1, :) = [550, 100, 2.54, 120, 1.27, 80, 1.27, 400];
+%GeometricInputs(end + 1, :) = [L, 100, 2.54, 100, 1.27, 80, 1.27, 400];
+
+% Design 0
+GeometricInputs(end + 1, :) = [0, 100, 1.27, 72.46, 1.27, 80, 1.27, 30];
+GeometricInputs(end + 1, :) = [30, 100, 1.27, 72.46, 1.27, 80, 1.27, 520];
+GeometricInputs(end + 1, :) = [550, 100, 1.27, 72.46, 1.27, 80, 1.27, 30];
+GeometricInputs(end + 1, :) = [580, 100, 1.27, 72.46, 1.27, 80, 1.27, 480];
+GeometricInputs(end + 1, :) = [1060, 100, 1.27, 72.46, 1.27, 80, 1.27, 30];
+GeometricInputs(end + 1, :) = [1090, 100, 1.27, 72.46, 1.27, 80, 1.27, 160];
+GeometricInputs(end + 1, :) = [1280, 100, 1.27, 72.46, 1.27, 80, 1.27, 30];
+GeometricInputs(end + 1, :) = [L, 100, 1.27, 72.46, 1.27, 80, 1.27, 30];
 
 
 
@@ -48,7 +58,16 @@ TauU = 4;
 TauG = 2;
 mu = 0.2;
 
-CrossSectionProperties = SectionProperties(GeometricInputs, n)
+CrossSectionProperties = SectionProperties(GeometricInputs, n);
+
+
+% find a way to automate this for ease of use
+cs1 = CrossSectionProperties(1, :);
+%cs2 = CrossSectionProperties(551, :);
+
+sprintf("Cross Section 1 - ybot: %.3g mm ytop: %.3g mm I: %.3g mm^4 Q: %d", cs1(8:11))
+%sprintf("Cross Section 2 - ybot: %.3g mm ytop: %.3g mm I: %.3g mm^4 Q: %d", cs2(8:11))
+
 
 %{
 %% 4. Calculate Failure Moments and Shear Forces
@@ -96,19 +115,6 @@ function [SFD, BMD] = UpdateDiagrams(xP, P, x, SFD, BMD)
     end
 end
 
-
-% xc: Location, x, of cross-section change
-% bft: Top Flange Width
-% tft: Top Flange Thickness
-% hw: Web Height
-% tw: Web Thickness (Assuming 2 separate webs)
-% bfb: Bottom Flange Width
-% tfb: Bottom Flange Thickness
-% a: Diaphragm Spacing
-function AddCrossSection(xc, bft, tft, hw, tw, bfb, tfb, a, GeometricInputs) % don't need htis shite
-    GeometricInputs(end + 1, :) = [xc, bft, tft, hw, tw, bfb, tfb, a];
-end
-
 function PlotDiagrams(x, L, SFD, BMD) % include curvature diagram
     subplot(2, 1, 1) % SFD
     plot(x, SFD)
@@ -145,9 +151,6 @@ function CrossSectionProperties = SectionProperties(GeometricInputs, n) % includ
 % Calculates important sectional properties. Including but not limited to ybar, I, Q, etc.
 %   Input: Geometric Inputs. Format will depend on user
 %   Output: Sectional Properties at every value of x. Each property is a 1-D array of length n
-% idk why it says each property shoudl be legnth n, because properties
-% should be consistent across a length with uniform cross section (unless
-% diaphragms have to be accounted for
     sect = zeros(n, 4); % columns: ybot, ytop, I, Q
     geom = zeros(n, size(GeometricInputs, 2) - 1);
     for i = 1 : (size(GeometricInputs, 1) - 1) % get row # (for each cross section)
@@ -166,16 +169,22 @@ function CrossSectionProperties = SectionProperties(GeometricInputs, n) % includ
         ybot = 0; % sum of area times relative y divided by sum of area
         ytop = 0; % ybar from top
         I = 0; % sum of individual i plus area times distance squared
+        yfla = 0; % distance from global centroid to centroid of flange above ybar
+        yweb = 0; % distance from global centroid to centroid of web above ybar
         Q = 0; % sum of area times distance
         for k = 1 : 3
                 ybot = ybot + areas(k) * distances(k);
         end
         ybot = ybot / sum(areas);
-        ytop = GeometricInputs(3) + GeometricInputs(4) + GeometricInputs(7) - ybot;
+        ytop = GeometricInputs(i, 3) + GeometricInputs(i, 4) + GeometricInputs(i, 7) - ybot;
         for k = 1 : 3
                 I = I + secondMomInert(k) + areas(k) * (distances(k) - ybot) ^ 2; % prbaobly somethign wrong with this calc
-                Q = Q + areas(k) * (distances(k) - ybot);
+                % Q = Q + areas(k) * (distances(k) - ybot); % do Q just for areas above centroid
         end
+        yfla = distances(1) - ybot;
+        yweb = (GeometricInputs(i, 4) - ybot + GeometricInputs(i, 7)) / 2;
+        Q = areas(1) * yfla;
+        Q = Q + GeometricInputs(i, 5) * 2 * yweb ^ 2; % multiply thickness of web by height (yweb * 2), multiply by distance (yweb)
         for j = (GeometricInputs(i, 1) + 1) : GeometricInputs(i + 1, 1) + 1 % beginning of current cross section to beginning of next cross section
             geom(j, :) = GeometricInputs(i, 2 : end);
             sect(j, 1) = ybot;
