@@ -8,32 +8,37 @@ BMD = zeros(1, n); % Initialize SFD(x)
 %% 1. Point Loading Analysis (SFD, BMD)
 
 P = 1; % CHANGE THIS probapbly or do some loop
-SFD2L = zeros(1, n);
-BMD2L = zeros(1, n);
+%SFD2L = zeros(1, n);
+%BMD2L = zeros(1, n);
+
 [SFD2L, BMD2L] = ApplyTwoLoads(1, x, SFD, BMD);
+
+%{
 PlotDiagrams(x, L, SFD2L, BMD2L)
 
+figure()
 [SFDTrain, BMDTrain] = ApplyTrainLoad(x, SFD, BMD);
-%PlotTrain(x, L, SFDTrain, BMDTrain)
-
+PlotTrain(x, L, SFDTrain, BMDTrain)
+%}
 
 %% 2. Define cross-sections
 
-%xc = [0 550 L]; % Location, x, of cross-section change
-%bft = [100 100 100]; % Top Flange Width
-%tft = [2.54 2.54 2.54]; % Top Flange Thickness
-%hw = [100 120 100]; % Web Height
-%tw = [1.27 1.27 1.27]; % Web Thickness (Assuming 2 separate webs)
-%bfb = [80 80 80]; % Bottom Flange Width
-%tfb = [1.27 1.27 1.27]; % Bottom Flange Thickness
-%a = [400 400 400]; % Diaphragm Spacing
-% have to find a way to deal with diaphragms (or not)
+%xc : Location, x, of cross-section change
+%bft : Top Flange Width
+%tft : Top Flange Thickness
+%hw : Web Height
+%tw : Web Thickness (Assuming 2 separate webs)
+%bfb : Bottom Flange Width
+%tfb : Bottom Flange Thickness
+%a : Diaphragm Spacing
 
-%GeometricInputs(end + 1, :) = [0, 100, 2.54, 100, 1.27, 80, 1.27, 400]; % add something for length of glue tabs on top and bottom (thickness should be same as thickness of webs
-%GeometricInputs(end + 1, :) = [550, 100, 2.54, 120, 1.27, 80, 1.27, 400];
-%GeometricInputs(end + 1, :) = [L, 100, 2.54, 100, 1.27, 80, 1.27, 400];
 
 % Design 0
+
+%% UNCOMMENT THIS IF YOU WANNA SEE HOW THE OUTPUT SHOULD WORK
+% (each of the rows will have the same properties though since only a
+% changes over the distance)
+%{
 GeometricInputs = [];
 
 GeometricInputs(end + 1, :) = [0, 100, 1.27, 72.46, 1.27, 80, 1.27, 30];
@@ -44,8 +49,13 @@ GeometricInputs(end + 1, :) = [1060, 100, 1.27, 72.46, 1.27, 80, 1.27, 30];
 GeometricInputs(end + 1, :) = [1090, 100, 1.27, 72.46, 1.27, 80, 1.27, 160];
 GeometricInputs(end + 1, :) = [1280, 100, 1.27, 72.46, 1.27, 80, 1.27, 30];
 GeometricInputs(end + 1, :) = [L, 100, 1.27, 72.46, 1.27, 80, 1.27, 30];
+%}
 
-% Design 1.0 woowwowow
+% Design 1.0
+
+% follow this format vv
+% GeometricInputs(end + 1, :) = [xc, bft, tft, hw, tw, bfb, tfb, a];
+GeometricInputs = [];
 
 % Optional but you need to ensure that your geometric inputs are correctly implemented
 % VisualizeBridge( {CrossSectionInputs} );
@@ -59,12 +69,10 @@ mu = 0.2;
 
 CrossSectionProperties = SectionProperties(GeometricInputs, n);
 
-%{
 for i = 1 : size(GeometricInputs, 1) - 1
     cs = CrossSectionProperties(GeometricInputs(i, 1) + 1, :);
-    sprintf("Cross Section @ %d mm - ybot: %.3g mm ytop: %.3g mm I: %.3g mm^4 Q: %.3g", GeometricInputs(i, 1), cs(8:11))
+    sprintf("Cross Section @ %d mm - ybot: %.3g mm ytop: %.3g mm I: %.3g mm^4 Qmax: %.3g Qglue: %.3g ", GeometricInputs(i, 1), cs(8:11), cs(16))
 end
-%}
 
 %cs1 = CrossSectionProperties(1, :);
 %cs2 = CrossSectionProperties(551, :);
@@ -75,17 +83,20 @@ end
 
 
 %% 4. Calculate Failure Moments and Shear Forces
+
+
+%{
 V_Mat = Vfail(CrossSectionProperties, TauU);
 V_Mat(1);
 V_Glue = VfailGlue(CrossSectionProperties, TauG);
 V_Glue(1);
 V_Buck = VfailBuck(CrossSectionProperties, E, mu);
-V_Buck
+V_Buck;
 M_MatT = MfailMatT(CrossSectionProperties, SigT, BMD);
-M_MatT(1);
+M_MatT(1)
 M_MatC = MfailMatC(CrossSectionProperties, SigC, BMD);
-M_MatC(1);
-%{
+M_MatC(1)
+
 M_Buck1 = MfailBuck(CrossSectionProperties, E, mu, 1 );
 M_Buck2 = MfailBuck(CrossSectionProperties, E, mu, 2 );
 M_Buck3 = MfailBuck(CrossSectionProperties, E, mu, 3 );
@@ -346,6 +357,10 @@ function [M_MatT] = MfailMatT(CrossSectionProperties, SigT, BMD)
 % Output: M_MatT a 1-D array of length n
 %[I, ybot, ytop] = SectionalProperties;
     M_MatT = zeros(1, size(BMD, 2));
+    I = CrossSectionProperties(:, 10);
+    ybot = CrossSectionProperties(:, 8);
+    ytop = CrossSectionProperties(:, 9);
+
     for i = 1 : size(BMD, 2)
         if BMD(i) > 0 % If the moment is positive, the tension failure will be at the bottom
             M_MatT(i) = SigT * I(i) / ybot(i);
