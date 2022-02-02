@@ -42,7 +42,7 @@ mu = 0.2;
 
 %% 4. Calculate Failure Moments and Shear Forces
 V_Mat = Vfail({CrossSectionInputs}, TauU);
-V_Glue = VfailGlue({CrossSectionInputs}, TauU);
+V_Glue = VfailGlue({CrossSectionInputs}, TauG);
 V_Buck = VfailBuck({CrossSectionInputs}, E, mu );
 M_MatT = MfailMatT({CrossSectionInputs}, SigT);
 M_MatC = MfailMatC({CrossSectionInputs}, SigC);
