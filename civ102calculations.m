@@ -91,10 +91,12 @@ Fails0 = GetFails(CrossSectionProperties0, TauU, TauG, E, mu, SigT, SigC, BMD2L)
 Fails = GetFails(CrossSectionProperties, TauU, TauG, E, mu, SigT, SigC, BMD2L);
 
 %% 4.7 Calculate Failure Load
-Pf0 = FailLoad(SFD2L, BMD2L, Fails0);
-Pf = FailLoad(SFD2L, BMD2L, Fails);
+Pf0 = FailLoad(SFD2L, BMD2L, Fails0)
+%Pf0 = FailLoad(SFDTrain, BMDTrain, Fails0)
+Pf = FailLoad(SFD2L, BMD2L, Fails)
+%Pf = FailLoad(SFDTrain, BMDTrain, Fails)
 
-Plot2L(x, L, Pf0, CrossSectionProperties, TauU, TauG, E, mu, SigT, SigC)
+Plot2L(x, L, Pf0, CrossSectionProperties0, TauU, TauG, E, mu, SigT, SigC)
 Plot2L(x, L, Pf, CrossSectionProperties, TauU, TauG, E, mu, SigT, SigC)
 
 %% 5. Curvature, Slope, Deflections
@@ -102,6 +104,7 @@ Plot2L(x, L, Pf, CrossSectionProperties, TauU, TauG, E, mu, SigT, SigC)
 
 %% Functions
 
+%{
 function [SFD, BMD] = ApplyPL(xP, P, x, SFD, BMD) % don't need this
 % Constructs SFD and BMD from application of 1 Point Load. Assumes fixed location of supports
 %   Input: location and magnitude of point load. The previous SFD can be entered as input to
@@ -113,26 +116,27 @@ function [SFD, BMD] = ApplyPL(xP, P, x, SFD, BMD) % don't need this
     By = P * (xP - xA) / (xB - xA);
     Ay = P - By; % force equilibrium on x
     
-    [SFD, BMD] = UpdateDiagrams(xA, Ay, x, SFD, BMD);
-    [SFD, BMD] = UpdateDiagrams(xB, By, x, SFD, BMD);
-    [SFD, BMD] = UpdateDiagrams(xP, -P, x, SFD, BMD);
+    [SFD, BMD] = UpdateDiagrams(xA, Ay, x, SFD, BMD); % add left support point load
+    [SFD, BMD] = UpdateDiagrams(xB, By, x, SFD, BMD);% add right support point load
+    [SFD, BMD] = UpdateDiagrams(xP, -P, x, SFD, BMD);% add applied force point load
 end
+%}
 
 function [SFD, BMD] = ApplyTwoLoads(P, x, SFD, BMD) % P is force of each individual load
     xA = 15; % location of support A
     xB = xA + 1060; % location of support B
-    xP1 = xA + 550;
-    xP2 = xB + 190;
+    xP1 = xA + 550; % applied force 1
+    xP2 = xB + 190; % applied force 1
     By = (P * (xP1 - xA) + P * (xP2 - xA)) / (xB - xA); % support B located at 1050mm from support A, support A located at x = 0
     Ay = 2 * P - By; % force equilibrium on x
     
-    [SFD, BMD] = UpdateDiagrams(xA, Ay, x, SFD, BMD);
-    [SFD, BMD] = UpdateDiagrams(xB, By, x, SFD, BMD);
-    [SFD, BMD] = UpdateDiagrams(xP1, -P, x, SFD, BMD);
-    [SFD, BMD] = UpdateDiagrams(xP2, -P, x, SFD, BMD);
+    [SFD, BMD] = UpdateDiagrams(xA, Ay, x, SFD, BMD); % add left support force
+    [SFD, BMD] = UpdateDiagrams(xB, By, x, SFD, BMD); % add right support force
+    [SFD, BMD] = UpdateDiagrams(xP1, -P, x, SFD, BMD); % add first applied force
+    [SFD, BMD] = UpdateDiagrams(xP2, -P, x, SFD, BMD); % add second applied force
 end
 
-function [trainSFD, trainBMD] = ApplyTrainLoad(x) % get rid of SFD, BMD here
+function [trainSFD, trainBMD] = ApplyTrainLoad(x)
 % Constructs SFD and BMD from application of train Load. Assumes fixed location of supports
 %   Input: location and magnitude of point load. The previous SFD can be entered as input to
 % construct SFD of multiple point loads
@@ -145,7 +149,7 @@ function [trainSFD, trainBMD] = ApplyTrainLoad(x) % get rid of SFD, BMD here
     wheelSpacing = [0, 176, 340, 516, 680, 856]; % location of wheels relative to backmost ones
     trainSFD = zeros(2, size(x, 2));
     trainBMD = zeros(2, size(x, 2));
-    position = [15, 137]; % two cases of train loading
+    position = [117, 424]; % two cases of train loading
     
     for i = 1 : 2 % do for two cases, not this ppopoo
         SFD = zeros(1, size(x, 2));
@@ -181,7 +185,7 @@ function PlotDiagrams(x, L, SFD, BMD) % include curvature diagram
     xlim([0 L])
     title("Shear Force over Horizontal Distance")
     xlabel("x (mm)")
-    ylabel("V (kN)")
+    ylabel("V (N)")
     ax = gca;
     ax.XAxisLocation = 'origin';
 
@@ -190,7 +194,7 @@ function PlotDiagrams(x, L, SFD, BMD) % include curvature diagram
     xlim([0 L])
     title("Moment over Horizontal Distance")
     xlabel("x (mm)")
-    ylabel("M (kN m)")
+    ylabel("M (N mm)")
     ax = gca;
     ax.XAxisLocation = 'origin';
     set(ax, 'YDir','reverse') % may not want it reversed, personal preference
@@ -210,7 +214,7 @@ function PlotTrain (x, L, trainSFD, trainBMD) % include curvature diagram
     xlim([0 L])
     title("Shear Force over Horizontal Distance")
     xlabel("x (mm)")
-    ylabel("V (kN)")
+    ylabel("V (N)")
     ax = gca;
     ax.XAxisLocation = 'origin';
 
@@ -224,7 +228,7 @@ function PlotTrain (x, L, trainSFD, trainBMD) % include curvature diagram
     xlim([0 L])
     title("Moment over Horizontal Distance")
     xlabel("x (mm)")
-    ylabel("M (kN m)")
+    ylabel("M (N mm)")
     ax = gca;
     ax.XAxisLocation = 'origin';
     set(ax, 'YDir','reverse') % may not want it reversed, personal preference
@@ -252,15 +256,15 @@ function CrossSectionProperties = SectionProperties(GeometricInputs, n) % includ
         secondMomInert(1) = (GeometricInputs(i, 2) * GeometricInputs(i, 3) ^ 3) / 12;
         secondMomInert(2) = (GeometricInputs(i, 5) * GeometricInputs(i, 4) ^ 3) / 12;
         secondMomInert(3) = (GeometricInputs(i, 6) * GeometricInputs(i, 7) ^ 3) / 12;
-        ybot = 0; % sum of area times relative y divided by sum of area
-        ytop = 0; % ybar from top
+        ybot = 0; % y bar from bottom
+        ytop = 0; % y bar from top
         I = 0; % sum of individual i plus area times distance squared
-        Qmax = 0; % sum of area times distance
+        Qmax = 0; % Q value from y bar
         yfla = 0; % distance from global centroid to centroid of flange above ybar
         yweb = 0; % distance from global centroid to centroid of web above ybar
         ytab = 0; % distance from global centroid to centroid of tab above ybar
         yfgl = 0; % distance from glue to flange
-        Qglue = 0;% implement this stuf
+        Qglue = 0;% Q value from point of glue (on top)
         for k = 1 : 3
             ybot = ybot + areas(k) * distances(k);
             if k == 2
@@ -370,20 +374,19 @@ function [M_MatC] = MfailMatC(CrossSectionProperties, SigC, BMD) % Similar to Mf
 end
 
 function [M_Buck] = MfailBuck1(CrossSectionProperties, E, mu, BMD) % case 1, middle part of flange
-% THIS WILL BE WEIRD FOR THE TRIPLE DIAPHRAGM ONE (might need to hardcode it)
 % Calculates bending moments at every value of x that would cause a buckling failure
 % Input: Sectional Properties (list of 1-D arrays), E, mu (material property), BMD (1-D array)
 % Output: M_MatBuck a 1-D array of length n
-    M_Buck = zeros(1, size(BMD, 2));
+    M_Buck = zeros(1, size(BMD, 2)); % initialize list
     I = CrossSectionProperties(:, 10);
-    b = (75 - CrossSectionProperties(:, 4) .* 2); % THIS IS HARDCODED BEWAAARE
+    b = (75 - CrossSectionProperties(:, 4) .* 2); % width of middle part of flange
     yfla = CrossSectionProperties(:, 9);
     t = CrossSectionProperties(:, 4);
 
-    fail = zeros(1, size(BMD, 2));
+    fail = zeros(1, size(BMD, 2)); % initialize array
     for i = 1 : size(BMD, 2)
         fail(i) = ((4*(pi^2)*E)/(12*(1-(mu^2))))*((t(i)/b(i))^2);
-        if BMD(i) >= 0
+        if BMD(i) >= 0 % if top of cross section is under compression
             M_Buck(i) = fail(i) * I(i) / yfla(i);
         else
             M_Buck(i) = 0;
@@ -400,10 +403,10 @@ function [M_Buck] = MfailBuck2(CrossSectionProperties, E, mu, BMD) % case 2, end
     yfla = CrossSectionProperties(:, 9);
     t = CrossSectionProperties(:, 4);
 
-    fail = zeros(1, size(BMD, 2));    
+    fail = zeros(1, size(BMD, 2)); % initialize array
     for i = 1 : size(BMD, 2)
         fail(i) = ((0.425*(pi^2)*(E))/(12*(1-(mu^2))))*((t(i)./b(i))^2);
-        if BMD(i) >= 0
+        if BMD(i) >= 0 % if top of cross section is under compression
             M_Buck(i) = fail(i) * I(i) / yfla(i);
         else
             M_Buck(i) = 0;
@@ -420,10 +423,10 @@ function [M_Buck] = MfailBuck3(CrossSectionProperties, E, mu, BMD) % case 3, web
     yweb = CrossSectionProperties(:, 9) - CrossSectionProperties(:, 2);
     t = CrossSectionProperties(:, 4);
 
-    fail = zeros(1, size(BMD, 2));
+    fail = zeros(1, size(BMD, 2)); % initialize array
     for i = 1 : size(BMD, 2)
         fail(i) = ((6*(pi^2)*(E))/(12*(1-(mu^2))))*((t(i)/b(i))^2);
-        if BMD(i) >= 0
+        if BMD(i) >= 0 % if top of cross section is under compression
             M_Buck(i) = fail(i) * I(i) / yweb(i);
         else
             M_Buck(i) = 0;
@@ -442,7 +445,7 @@ function [M_Buck] = MfailBuck4 (CrossSectionProperties, E, mu, BMD) % case 3, we
     fail = zeros(1, size(BMD, 2));
     for i = 1 : size(BMD, 2)
         fail(i) = ((6*(pi^2)*(E))/(12*(1-(mu^2))))*((t(i)/b(i))^2);
-        if BMD(i) <= 0
+        if BMD(i) <= 0 % if bottom of cross section is under compression
             M_Buck(i) = -fail(i) * I(i) / b(i);
         else
             M_Buck(i) = 0;
@@ -463,7 +466,7 @@ function [M_Buck] = MfailBuck5(CrossSectionProperties, E, mu, BMD) % case 3, web
     fail = zeros(1, size(BMD, 2));
     for i = 1 : size(BMD, 2)
         fail(i) = ((4*(pi^2)*(E))/(12*(1-(mu^2))))*((t(i)/b(i))^2);
-        if BMD(i) <= 0
+        if BMD(i) <= 0 % if bottom of cross section is under compression
             M_Buck(i) = -fail(i) * I(i) / ybot(i);
         else
             M_Buck(i) = 0;
@@ -472,9 +475,10 @@ function [M_Buck] = MfailBuck5(CrossSectionProperties, E, mu, BMD) % case 3, web
 end
 
 function [Fails] = GetFails(CrossSectionProperties, TauU, TauG, E, mu, SigT, SigC, BMD)
+    % Adds all failure types into one array
     Fails = zeros(10, size(BMD, 2));
     Fails(1, :) = Vfail(CrossSectionProperties, TauU); % V_fail
-    Fails(2, :) = VfailGlue(CrossSectionProperties, TauG); % V_failGLue
+    Fails(2, :) = VfailGlue(CrossSectionProperties, TauG); % V_failGlue
     Fails(3, :) = VfailBuck(CrossSectionProperties, E, mu); % V_buck
     Fails(4, :) = MfailMatT(CrossSectionProperties, SigT, BMD); % M_MatT
     Fails(5, :) = MfailMatC(CrossSectionProperties, SigC, BMD); % M_MatC
@@ -513,7 +517,7 @@ end
 function [Defls] = Deflections(x, BMD, I, E)
 % Calculates deflections
 % Input: I(1-D arrays), E (material property), BMD (1-D array)
-% Output: Deflection for every value of x (1-D array) or for the midspan only
+% Outputx: Deflection for every value of x (1-D array) or for the midspan only
     CurvD = BMD ./ I ./ E;
     Thing = zeros(1, size(x, 2));
     for i = 2 : size(x, 2)
@@ -536,8 +540,8 @@ function [Defls] = Deflections(x, BMD, I, E)
 end
 
 function Plot2L(x, L, Pf, CrossSectionProperties, TauU, TauG, E, mu, SigT, SigC) % ADD LEGENDS
-    SFD = zeros(1, size(x, 2)); % Initialize SFD(x)
-    BMD = zeros(1, size(x, 2)); % Initialize SFD(x)
+    SFD = zeros(1, size(x, 2));
+    BMD = zeros(1, size(x, 2));
     [SFD, BMD] = ApplyTwoLoads(Pf, x, SFD, BMD);
     Fails = GetFails(CrossSectionProperties, TauU, TauG, E, mu, SigT, SigC, BMD);
 
@@ -547,7 +551,7 @@ function Plot2L(x, L, Pf, CrossSectionProperties, TauU, TauG, E, mu, SigT, SigC)
     xlim([0 L])
     title("Shear Force over Horizontal Distance")
     xlabel("x (mm)")
-    ylabel("V (kN)")
+    ylabel("V (N)")
     ax = gca;
     ax.XAxisLocation = 'origin';
 
@@ -562,7 +566,7 @@ function Plot2L(x, L, Pf, CrossSectionProperties, TauU, TauG, E, mu, SigT, SigC)
     xlim([0 L])
     title("SFD vs. Material and Glue Shear Failures")
     xlabel("x (mm)")
-    ylabel("V (kN)")
+    ylabel("V (N)")
     legend("SFD", "Material Shear", "Glue Shear")
     ax = gca;
     ax.XAxisLocation = 'origin';
@@ -576,7 +580,7 @@ function Plot2L(x, L, Pf, CrossSectionProperties, TauU, TauG, E, mu, SigT, SigC)
     xlim([0 L])
     title("SFD vs. Shear Buckling Failure")
     xlabel("x (mm)")
-    ylabel("V (kN)")
+    ylabel("V (N)")
     legend("SFD", "Shear Buck.")
     ax = gca;
     ax.XAxisLocation = 'origin';
@@ -586,7 +590,7 @@ function Plot2L(x, L, Pf, CrossSectionProperties, TauU, TauG, E, mu, SigT, SigC)
     xlim([0 L])
     title("Bending Moment over Horizontal Distance")
     xlabel("x (mm)")
-    ylabel("M (kN m)")
+    ylabel("M (N mm)")
     ax = gca;
     ax.XAxisLocation = 'origin';
     set(ax, 'YDir','reverse') % may not want it reversed, personal preference
@@ -600,7 +604,7 @@ function Plot2L(x, L, Pf, CrossSectionProperties, TauU, TauG, E, mu, SigT, SigC)
     xlim([0 L])
     title("BMD vs. Material Moment Failures")
     xlabel("x (mm)")
-    ylabel("M (kN m)")
+    ylabel("M (N mm)")
     legend("BMD", "Flange Moment", "Web Moment")
     ax = gca;
     ax.XAxisLocation = 'origin';
@@ -618,8 +622,8 @@ function Plot2L(x, L, Pf, CrossSectionProperties, TauU, TauG, E, mu, SigT, SigC)
     xlim([0 L])
     title("BMD vs. Plate Buckling Failures")
     xlabel("x (mm)")
-    ylabel("M (kN m)")
-    legend("SFD", "Plate #1", "Plate #2", "Plate #3", "Plate #4", "Plate #5")
+    ylabel("M (N mm)")
+    legend("SFD", "Mid Flange Buck.", "Side Flange Buck.", "Top Web Buck.", "Bottom Web Buck.", "Bottom Flange Buck.", 'Location', "southeast")
     ax = gca;
     ax.XAxisLocation = 'origin';
     set(ax, 'YDir','reverse') % may not want it reversed, personal preference
