@@ -13,9 +13,13 @@ BMD = zeros(1, n);
 %[SFD2L, BMD2L] = ApplyTwoLoads(1, x, SFD, BMD);
 %PlotDiagrams(x, L, SFD_2L, BMD_2L)
 
-SFD = zeros(1, n);
-BMD = zeros(1, n);
+trainLength = 856;
+t = zeros(0, trainLength);
+%trainSFD = zeros(1, trainLength + 1);
+%trainBMD = zeros(1, trainLength + 1);
 [SFDTrain, BMDTrain] = ApplyTrainLoad(x, SFD, BMD);
+
+%PlotDiagrams(x, L, SFDTrain, BMDTrain)
 PlotTrain(x, L, SFDTrain, BMDTrain)
 
 %% 2. Define cross-sections
@@ -136,26 +140,31 @@ function [trainSFD, trainBMD] = ApplyTrainLoad(x, SFD, BMD)
     xB = 1075; % location of support B
     trainLength = 856; % not including length past wheels at end
     wheelSpacing = [0, 176, 340, 516, 680, 856]; % location of wheels relative to backmost ones
-    trainSFD = zeros(1, size(x, 2) - trainLength - 15 + 1);
-    trainBMD = zeros(1, size(x, 2) - trainLength - 15 + 1);
+    trainSFD = zeros(2, size(x, 2));
+    trainBMD = zeros(2, size(x, 2));
+    position = [15, 137]; % two cases of train loading
     
-    for i = 1 : trainLength + 1
+    for i = 1 : 2 % do for two cases, not this ppopoo
+        SFD = zeros(1, size(x, 2));
+        BMD = zeros(1, size(x, 2));
         By = 0;
         for j = 1 : 6 % for every set of wheels
-            By = P / 6 * (wheelSpacing(j) + i) / (xB - xA);
+            By = By + P / 6 * (wheelSpacing(j) + position(i)) / (xB - xA);
         end
         By = By / (xB - xA);
         Ay = P - By;
         [SFD, BMD] = UpdateDiagrams(xA, Ay, x, SFD, BMD);
         [SFD, BMD] = UpdateDiagrams(xB, By, x, SFD, BMD);
         for j = 1 : 6 % for every set of wheels
-            [SFD, BMD] = UpdateDiagrams(wheelSpacing(j) + i + 1, -P / 6, x, SFD, BMD);
+            [SFD, BMD] = UpdateDiagrams(wheelSpacing(j) + position(i), -P / 6, x, SFD, BMD);
         end
-        trainSFD(end + 1, xA + 1 : size(x, 2) - trainLength - 14) = SFD;
-        trainBMD(end + 1, xA + 1 : size(x, 2) - trainLength - 14) = BMD;
+        trainSFD(i, :) = SFD;
+        trainBMD(i, :) = BMD;
     end
+    %trainSFD = SFD;
+    %trainBMD = BMD;
+
     %PlotTrain(x, trainSFD, trainBMD)
-    
 end
 
 function [SFD, BMD] = UpdateDiagrams(xP, P, x, SFD, BMD)
@@ -190,7 +199,42 @@ function PlotDiagrams(x, L, SFD, BMD) % include curvature diagram
     set(gcf, 'Name', 'Force and Moment Diagrams') % name of window
 end
 
-function PlotTrain (x, L, SFD, BMD)
+function PlotTrain (x, L, trainSFD, trainBMD) % include curvature diagram
+    trainLength = size(trainSFD, 2);
+    subplot(2, 1, 1) % SFD
+    for i = 1 : size(trainSFD, 1)
+        plot(x, trainSFD)
+        hold on
+    end
+    hold off
+    %plot(x(15 : 15 + trainLength - 1), SFD)
+    xlim([0 L])
+    title("Shear Force over Horizontal Distance")
+    xlabel("x (mm)")
+    ylabel("V (kN)")
+    ax = gca;
+    ax.XAxisLocation = 'origin';
+
+    subplot(2, 1, 2) % BMD
+    for i = 15 : size(x, 2) - trainLength - 15
+        plot(x(i : i + trainLength), trainBMD)
+        hold on
+    end
+    hold off
+    %plot(x(15 : 15 + trainLength - 1), BMD)
+    xlim([0 L])
+    title("Moment over Horizontal Distance")
+    xlabel("x (mm)")
+    ylabel("M (kN m)")
+    ax = gca;
+    ax.XAxisLocation = 'origin';
+    set(ax, 'YDir','reverse') % may not want it reversed, personal preference
+    
+    set(gcf, 'Name', 'Force and Moment Diagrams') % name of window
+end
+
+function PlotTrain2 (x, L, SFD, BMD)
+    trainLength = 856;
     t = tiledlayout(2,1);
     ax1 = nexttile;
     xlim([0 L])
@@ -208,9 +252,9 @@ function PlotTrain (x, L, SFD, BMD)
     set(ax2, 'YDir','reverse')
     hold(ax2, 'off')
 
-    for i = 1 : L + 1
-        plot(ax1, x, SFD(i, :))
-        plot(ax2, x, BMD(i, :))
+    for i = 1 : L - size(SFD, 2)
+        plot(ax1, x(i : trainLength + i + 1), SFD)
+        plot(ax2, x(i : trainLength + i + 1), BMD)
     end
 
     title(t, "Diagrams for Train Loading Scenario")
