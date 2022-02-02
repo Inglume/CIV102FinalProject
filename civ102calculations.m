@@ -2,15 +2,14 @@
 L = 1310; % Length of bridge
 n = L + 1; % Number of locations to evaluate bridge failure
 x = linspace(0, L, n); % Define x coordinate
-SFD_PL = zeros(1, n); % Initialize SFD(x)
-BMD_PL = zeros(1, n); % Initialize SFD(x)
+SFD = zeros(1, n); % Initialize SFD(x)
+BMD = zeros(1, n); % Initialize SFD(x)
 
 %% 1. Point Loading Analysis (SFD, BMD)
-P = 318; % CHANGE THIS probapbly
-[SFD_PL, BMD_PL] = ApplyPL(550, P, x, SFD_PL, BMD_PL); % Construct SFD, BMD
-[SFD_PL, BMD_PL] = ApplyPL(L, P, x, SFD_PL, BMD_PL); % Construct SFD, BMD
 
-%PlotDiagrams(x, L, SFD_PL, BMD_PL)
+P = 1; % CHANGE THIS probapbly or do some loop
+[SFD_2L, BMD_2L] = ApplyTwoLoads(1, x, SFD, BMD);
+PlotDiagrams(x, L, SFD_2L, BMD_2L)
 
 %% 2. Define cross-sections
 % There are many (more elegant ways) to construct cross-section objects
@@ -62,10 +61,10 @@ CrossSectionProperties = SectionProperties(GeometricInputs, n);
 
 
 % find a way to automate this for ease of use
-cs1 = CrossSectionProperties(1, :);
+%cs1 = CrossSectionProperties(1, :);
 %cs2 = CrossSectionProperties(551, :);
 
-sprintf("Cross Section 1 - ybot: %.3g mm ytop: %.3g mm I: %.3g mm^4 Q: %d", cs1(8:11))
+%sprintf("Cross Section 1 - ybot: %.3g mm ytop: %.3g mm I: %.3g mm^4 Q: %d", cs1(8:11))
 %sprintf("Cross Section 2 - ybot: %.3g mm ytop: %.3g mm I: %.3g mm^4 Q: %d", cs2(8:11))
 
 
@@ -90,14 +89,48 @@ VisualizePL(x, P, SFD_PL, BMD_PL, V_Mat, V_Glue, V_Buck, M_MatT, M_MatC, M_Buck1
 Defls = Deflections(x, BMD_PL, I, E);
 %}
 %% Functions
-function [SFD, BMD] = ApplyPL(xP, P, x, SFD, BMD)
+
+function [SFD, BMD] = ApplyPL(xP, P, x, SFD, BMD) % don't need this
 % Constructs SFD and BMD from application of 1 Point Load. Assumes fixed location of supports
 %   Input: location and magnitude of point load. The previous SFD can be entered as input to
 % construct SFD of multiple point loads
 %   Output: SFD, BMD both 1-D arrays of length n
 % need to account for support reaction forces too
-    xA = 0; % location of support A
-    xB = 1050; % location of support B
+    xA = 15; % location of support A
+    xB = 1075; % location of support B
+    By = P * (xP - xA) / (xB - xA); % support B located at 1050mm from support A, support A located at x = 0
+    Ay = P - By; % force equilibrium on x
+    
+    [SFD, BMD] = UpdateDiagrams(xA, Ay, x, SFD, BMD);
+    [SFD, BMD] = UpdateDiagrams(xB, By, x, SFD, BMD);
+    [SFD, BMD] = UpdateDiagrams(xP, -P, x, SFD, BMD);
+end
+
+function [SFD, BMD] = ApplyTwoLoads(P, x, SFD, BMD) % P is force of each individual load
+    xA = 15; % location of support A
+    xB = xA + 1060; % location of support B
+    xP1 = xA + 550;
+    xP2 = xB + 190;
+    By = (P * (xP1 - xA) + P * (xP2 - xA)) / (xB - xA) % support B located at 1050mm from support A, support A located at x = 0
+    Ay = 2 * P - By % force equilibrium on x
+    
+    [SFD, BMD] = UpdateDiagrams(xA, Ay, x, SFD, BMD);
+    [SFD, BMD] = UpdateDiagrams(xB, By, x, SFD, BMD);
+    [SFD, BMD] = UpdateDiagrams(xP1, -P, x, SFD, BMD);
+    [SFD, BMD] = UpdateDiagrams(xP2, -P, x, SFD, BMD);
+end
+
+function [SFD, BMD] = ApplyTrainLoad(x, SFD, BMD)
+% Constructs SFD and BMD from application of train Load. Assumes fixed location of supports
+%   Input: location and magnitude of point load. The previous SFD can be entered as input to
+% construct SFD of multiple point loads
+%   Output: SFD, BMD both 1-D arrays of length n
+% need to account for support reaction forces too
+    P = 400;
+    xA = 15; % location of support A
+    xB = 1075; % location of support B
+    trainLength = sfas;
+    trainSpacing = adfa;
     By = P * (xP - xA) / (xB - xA); % support B located at 1050mm from support A, support A located at x = 0
     Ay = P - By; % force equilibrium on x
     
@@ -111,7 +144,7 @@ function [SFD, BMD] = UpdateDiagrams(xP, P, x, SFD, BMD)
     
     for i = xP + 2 : length(x)
         SFD(i) = SFD(i) + P;
-        BMD(i) = BMD(i - 1) + (SFD(i) / 1000); % start changing BMD at (xP + 1) since moment at xP = 0 anyways relative to shear force
+        BMD(i) = BMD(i - 1) + (SFD(i - 1) / 1000); % start changing BMD at (xP + 1) since moment at xP = 0 anyways relative to shear force
     end
 end
 
@@ -136,10 +169,6 @@ function PlotDiagrams(x, L, SFD, BMD) % include curvature diagram
     set(ax, 'YDir','reverse') % may not want it reversed, personal preference
     
     set(gcf, 'Name', 'Force and Moment Diagrams') % name of window
-end
-
-function TrainLoadDiagram(x, L, SFD, BMD)
-    print("a");
 end
 
 function VisualizeBridge(GeometricInputs)
