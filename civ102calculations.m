@@ -32,9 +32,9 @@ a = [400 400 400]; % Diaphragm Spacing
 % tried implementing in another way, wehre each row corresponds to
 % different cross section
 
-AddCrossSection(0, 100, 2.54, 100, 1.27, 80, 1.27, 400, GeometricInputs)
-AddCrossSection(550, 100, 2.54, 120, 1.27, 80, 1.27, 400, GeometricInputs)
-% AddCrossSection(L, 100, 2.54, 100, 1.27, 80, 1.27, 400);
+GeometricInputs(end + 1, :) = [0, 100, 2.54, 100, 1.27, 80, 1.27, 400];
+GeometricInputs(end + 1, :) = [550, 100, 2.54, 120, 1.27, 80, 1.27, 400];
+GeometricInputs(end + 1, :) = [L, 100, 2.54, 100, 1.27, 80, 1.27, 400];
 
 % Optional but you need to ensure that your geometric inputs are correctly implemented
 % VisualizeBridge( {CrossSectionInputs} );
@@ -46,11 +46,9 @@ TauU = 4;
 TauG = 2;
 mu = 0.2;
 
+CrossSectionProperties = SectionProperties(GeometricInputs) % also make geometric inputs for every single x in thsi thing 
+
 %{
-
-SectionalProperties = SectionProperties(GeometricInputs)
-CrossSectionProperties = [GeometricInputs SectionalProperties] % geometric and sectional things combined (may want to do this differently)
-
 %% 4. Calculate Failure Moments and Shear Forces
 V_Mat = Vfail(CrossSectionInputs, TauU);
 V_Glue = VfailGlue(CrossSectionInputs, TauG);
@@ -105,11 +103,11 @@ end
 % bfb: Bottom Flange Width
 % tfb: Bottom Flange Thickness
 % a: Diaphragm Spacing
-function AddCrossSection(xc, bft, tft, hw, tw, bfb, tfb, a, GeometricInputs)
+function AddCrossSection(xc, bft, tft, hw, tw, bfb, tfb, a, GeometricInputs) % don't need htis shite
     GeometricInputs(end + 1, :) = [xc, bft, tft, hw, tw, bfb, tfb, a];
 end
 
-function PlotDiagrams(x, L, SFD, BMD)
+function PlotDiagrams(x, L, SFD, BMD) % include curvature diagram
     subplot(2, 1, 1) % SFD
     plot(x, SFD)
     xlim([0 L])
@@ -141,15 +139,21 @@ function VisualizeBridge(GeometricInputs)
 end
 
 % check this function
-function [SectionalProperties] = SectionProperties(GeometricInputs)
+function CrossSectionProperties = SectionProperties(GeometricInputs, n) % include y plate 1, 2, 3, 4, 5, 6
 % Calculates important sectional properties. Including but not limited to ybar, I, Q, etc.
 %   Input: Geometric Inputs. Format will depend on user
 %   Output: Sectional Properties at every value of x. Each property is a 1-D array of length n
 % idk why it says each property shoudl be legnth n, because properties
 % should be consistent across a length with uniform cross section (unless
 % diaphragms have to be accounted for
-    for i = 1 : length(GeometricInputs) - 1 % get row # (for each cross section)
-        for j = GeometricInputs(i, 0) : GeometricInputs(i, 1) % beginning of current cross section to beginning of next cross section
+    ybot = zeros(n, 1); % sum of area times relative y divided by sum of area
+    ytop = zeros(n, 1); % ybar from top
+    I = zeros(n, 1); % sum of individual i plus area times distance squared
+    Q = zeros(n, 1); % sum of area times distance
+    CrossSectionProperties = zeroes(n, size(GeometricInputs, 1) - 1);
+    for i = 1 : size(GeometricInputs, 2) % get row # (for each cross section)
+        for j = GeometricInputs(i, 0) : GeometricInputs(i + 1, 0) % beginning of current cross section to beginning of next cross section
+            CrossSectionProperties(j, :) = GeometricInputs(i, 2 : end);
             areas = zeroes(1, 3); % length three (top, web, bottom)
             distances = zeroes(1, 3); % length three (distance from bot)
             secondMomInert = zeroes(1, 3); % second moment of inertias for each part
@@ -162,20 +166,22 @@ function [SectionalProperties] = SectionProperties(GeometricInputs)
             secondMomInert(1) = (GeometricInputs(2) * GeometricInputs(3) ^ 2) / 12;
             secondMomInert(2) = (GeometricInputs(4) * GeometricInputs(5) ^ 2) / 12;
             secondMomInert(3) = (GeometricInputs(6) * GeometricInputs(7) ^ 2) / 12;
-            ybar = 0; % sum of area times relative y divided by sum of area
-            I = 0; % sum of individual i plus area times distance squared
-            Q = 0; % sum of area times distance
-            for i = 1 : 3
-                ybar = ybar + areas(i) * distances(i);
+            for k = 1 : 3
+                ybot(i) = ybot(i) + areas(k) * distances(k);
             end
-            for i = 1 : 3
-                I = I + secondMomInert(i) + areas(i) * distances(i) ^ 2; % do y not tdistance
-                Q = Q + areas(i) * distances(i);
+            for k = 1 : 3
+                I(i) = I(i) + secondMomInert(k) + areas(k) * distances(k) ^ 2; % do y not tdistance
+                Q(i) = Q(i) + areas(k) * distances(k);
             end
-            ybar = ybar / sum(areas);
+            ybot(i) = ybot / sum(areas);
+            ytop(i) = GeometricInputs(3) + GeometricInputs(4) + GeometricInputs(7) - ybot;
         end
     end
-    SectionalProperties = [ybar I Q];
+    ybot = ybot';
+    ytop = ytop';
+    I = I';
+    Q = Q';
+    CrossSectionProperties = [ybot ytop I Q];
 end
 
 function [V_fail] = Vfail(SectionalProperties, TauU)
