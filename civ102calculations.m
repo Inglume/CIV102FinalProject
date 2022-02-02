@@ -13,6 +13,9 @@ P = 1; % CHANGE THIS probapbly or do some loop
 
 [SFD2L, BMD2L] = ApplyTwoLoads(1, x, SFD, BMD);
 
+[SFDTrain, BMDTrain] = ApplyTrainLoad(x, SFD, BMD);
+
+
 %{
 PlotDiagrams(x, L, SFD2L, BMD2L)
 
@@ -20,6 +23,10 @@ figure()
 [SFDTrain, BMDTrain] = ApplyTrainLoad(x, SFD, BMD);
 PlotTrain(x, L, SFDTrain, BMDTrain)
 %}
+
+SFDTrain = max(SFDTrain(1, :), SFDTrain(2, :));
+BMDTrain = max(BMDTrain(1, :), BMDTrain(2, :));
+
 
 %% 2. Define cross-sections
 
@@ -38,7 +45,7 @@ PlotTrain(x, L, SFDTrain, BMDTrain)
 %% UNCOMMENT THIS IF YOU WANNA SEE HOW THE OUTPUT SHOULD WORK
 % (each of the rows will have the same properties though since only a
 % changes over the distance)
-%{
+
 GeometricInputs = [];
 
 GeometricInputs(end + 1, :) = [0, 100, 1.27, 72.46, 1.27, 80, 1.27, 30];
@@ -49,16 +56,15 @@ GeometricInputs(end + 1, :) = [1060, 100, 1.27, 72.46, 1.27, 80, 1.27, 30];
 GeometricInputs(end + 1, :) = [1090, 100, 1.27, 72.46, 1.27, 80, 1.27, 160];
 GeometricInputs(end + 1, :) = [1280, 100, 1.27, 72.46, 1.27, 80, 1.27, 30];
 GeometricInputs(end + 1, :) = [L, 100, 1.27, 72.46, 1.27, 80, 1.27, 30];
-%}
 
 % Design 1.0
 
 % follow this format vv
 % GeometricInputs(end + 1, :) = [xc, bft, tft, hw, tw, bfb, tfb, a];
-GeometricInputs = [];
+%GeometricInputs = [];
 
-% Optional but you need to ensure that your geometric inputs are correctly implemented
-% VisualizeBridge( {CrossSectionInputs} );
+
+
 %% 3. Define Material Properties
 SigT = 30; % tensile stress
 SigC = 6; % compressive stress
@@ -69,48 +75,46 @@ mu = 0.2;
 
 CrossSectionProperties = SectionProperties(GeometricInputs, n);
 
+%{
 for i = 1 : size(GeometricInputs, 1) - 1
     cs = CrossSectionProperties(GeometricInputs(i, 1) + 1, :);
     sprintf("Cross Section @ %d mm - ybot: %.3g mm ytop: %.3g mm I: %.3g mm^4 Qmax: %.3g Qglue: %.3g ", GeometricInputs(i, 1), cs(8:11), cs(16))
 end
-
-%cs1 = CrossSectionProperties(1, :);
-%cs2 = CrossSectionProperties(551, :);
-
-%sprintf("Cross Section 1 - ybot: %.3g mm ytop: %.3g mm I: %.3g mm^4 Q: %d", cs1(8:11))
-%sprintf("Cross Section 2 - ybot: %.3g mm ytop: %.3g mm I: %.3g mm^4 Q: %d", cs2(8:11))
-
-
+%}
 
 %% 4. Calculate Failure Moments and Shear Forces
 
 
-%{
+
 V_Mat = Vfail(CrossSectionProperties, TauU);
 V_Mat(1);
 V_Glue = VfailGlue(CrossSectionProperties, TauG);
 V_Glue(1);
 V_Buck = VfailBuck(CrossSectionProperties, E, mu);
 V_Buck;
-M_MatT = MfailMatT(CrossSectionProperties, SigT, BMD);
-M_MatT(1)
-M_MatC = MfailMatC(CrossSectionProperties, SigC, BMD);
-M_MatC(1)
+M_MatT = MfailMatT(CrossSectionProperties, SigT, BMD2L);
+M_MatT(2);
+M_MatT(1000);
+M_MatC = MfailMatC(CrossSectionProperties, SigC, BMD2L);
+M_MatC(2);
+M_MatC(1000);
+M_Buck1 = MfailBuck1(CrossSectionProperties, E, mu, BMD2L);
+M_Buck1(1);
+M_Buck2 = MfailBuck2(CrossSectionProperties, E, mu, BMD2L);
+M_Buck2(1);
+M_Buck3 = MfailBuck3(CrossSectionProperties, E, mu, BMD2L);
+M_Buck3(1);
 
-M_Buck1 = MfailBuck(CrossSectionProperties, E, mu, 1 );
-M_Buck2 = MfailBuck(CrossSectionProperties, E, mu, 2 );
-M_Buck3 = MfailBuck(CrossSectionProperties, E, mu, 3 );
-
-
+%{
 %% 4.7 Calculate Failure Load
 Pf = FailLoad(P, SFD_PL, BMD_PL, V_Mat, V_Glue, V_Buck, M_MatT, M_MatC, M_Buck1, M_Buck2, M_Buck3);
 
 %% Visualization
 VisualizePL(x, P, SFD_PL, BMD_PL, V_Mat, V_Glue, V_Buck, M_MatT, M_MatC, M_Buck1, M_Buck2, M_Buck3, Pf);
+%}
 
 %% 5. Curvature, Slope, Deflections
-Defls = Deflections(x, BMD_PL, I, E);
-%}
+%Defls = Deflections(x, BMDTrain, GeometricInputs(10), E);
 %% Functions
 
 function [SFD, BMD] = ApplyPL(xP, P, x, SFD, BMD) % don't need this
@@ -355,16 +359,15 @@ function [M_MatT] = MfailMatT(CrossSectionProperties, SigT, BMD)
 % Calculates bending moments at every value of x that would cause a matboard tension failure
 % Input: Sectional Properties (list of 1-D arrays), SigT (material property), BMD (1-D array)
 % Output: M_MatT a 1-D array of length n
-%[I, ybot, ytop] = SectionalProperties;
     M_MatT = zeros(1, size(BMD, 2));
     I = CrossSectionProperties(:, 10);
     ybot = CrossSectionProperties(:, 8);
     ytop = CrossSectionProperties(:, 9);
 
     for i = 1 : size(BMD, 2)
-        if BMD(i) > 0 % If the moment is positive, the tension failure will be at the bottom
+        if BMD(i) >= 0 % If the moment is positive, the tension failure will be at the bottom
             M_MatT(i) = SigT * I(i) / ybot(i);
-        elseif BMD(i) < 0 % If the moment is negative, the tension failure will be at the top
+        else % If the moment is negative, the tension failure will be at the top
             M_MatT(i) = -SigT * I(i) / ytop(i);
         end
     end
@@ -372,40 +375,50 @@ end
 
 function [M_MatC] = MfailMatC(CrossSectionProperties, SigC, BMD) % Similar to MfailMatT
     M_MatC = zeros(1, size(BMD, 2));
+    I = CrossSectionProperties(:, 10);
+    ybot = CrossSectionProperties(:, 8);
+    ytop = CrossSectionProperties(:, 9);
+
     for i = 1 : size(BMD, 2)
-        if BMD(i) > 0 % If the moment is positive, the compression failure will be at the top
+        if BMD(i) >= 0 % If the moment is positive, the compression failure will be at the top
             M_MatC(i) = SigC * I(i) / ytop(i);
-        elseif BMD(i) < 0 % If the moment is negative, the compression failure will be at the bottom
+        else % If the moment is negative, the compression failure will be at the bottom
             M_MatC(i) = -SigC * I(i) / ybot(i);
         end
     end
 end
 
 function [M_Buck] = MfailBuck1(CrossSectionProperties, E, mu, BMD) % case 1, middle part of flange
+% THIS WILL BE WEIRD FOR THE TRIPLE DIAPHRAGM ONE (might need to hardcode it)
 % Calculates bending moments at every value of x that would cause a buckling failure
 % Input: Sectional Properties (list of 1-D arrays), E, mu (material property), BMD (1-D array)
 % Output: M_MatBuck a 1-D array of length n
-    
+
+    M_Buck = zeros(1, size(BMD, 2));
     I = CrossSectionProperties(:, 10);
-    b = CrossSectionProperties(:, 4) * 2;
-    yfla = CrossSectionProperties(:, 12);    
+    b = (80 - CrossSectionProperties(:, 4) .* 2); % THIS IS HARDCODED BEWAAARE
+    yfla = CrossSectionProperties(:, 9);
+    t = CrossSectionProperties(:, 4);
 
     fail = zeros(1, size(BMD, 2));
     for i = 1 : size(BMD, 2)
-        fail(i) = ((4*(pi^2)*(E))/(12*(1-(mu^2))))*((t/b(i))^2);
-        if yfla > 0
-            if BMD(i) > 0
-                M_Buck(i) = fail(i) * I(i) / yfla(i);
-            else
-                M_Buck(i) = 0;
-            end
-        elseif yfla < 0
-            if BMD(i) < 0
-                M_Buck(i) = fail(i) * I(i) / -yfla(i);
-            else
-                M_Buck(i) = 0;
-            end
+        fail(i) = ((4*(pi^2)*E)/(12*(1-(mu^2))))*((t(i)/b(i))^2);
+        %if yfla > 0
+        if BMD(i) >= 0
+            M_Buck(i) = fail(i) * I(i) / yfla(i);
+        else
+            M_Buck(i) = 0;
         end
+        %{
+elseif yfla < 0
+            if BMD(i) < 0
+                M_Buck(i) = fail(i) .* I(i) ./ -yfla(i);
+            else
+                M_Buck(i) = 0;
+            end
+                
+end
+        %}
     end
 end
 
@@ -413,21 +426,18 @@ function [M_Buck] = MfailBuck2(CrossSectionProperties, E, mu, BMD) % case 2, end
 % Calculates bending moments at every value of x that would cause a buckling failure
 % Input: Sectional Properties (list of 1-D arrays), E, mu (material property), BMD (1-D array)
 % Output: M_MatBuck a 1-D array of length n
+    I = CrossSectionProperties(:, 10);
+    b = 10 * ones(1, size(BMD, 2)); % HARDCOODED
+    yfla = CrossSectionProperties(:, 9);
+    t = CrossSectionProperties(:, 4);
+
     fail = zeros(1, size(BMD, 2));    
     for i = 1 : size(BMD, 2)
-        fail(i) = ((0.425*(pi^2)*(E))/(12*(1-(mu^2))))*((t/b(i))^2);
-        if yplate > 0
-            if BMD(i) > 0
-                M_Buck(i) = fail(i) * I(i) / yplate;
-            else
-                M_Buck(i) = 0;
-            end
-        elseif yplate < 0
-            if BMD(i) < 0
-                M_Buck(i) = fail(i) * I(i) / -yplate;
-            else
-                M_Buck(i) = 0;
-            end
+        fail(i) = ((0.425*(pi^2)*(E))/(12*(1-(mu^2))))*((t(i)./b(i))^2);
+        if BMD(i) >= 0
+            M_Buck(i) = fail(i) * I(i) / yfla(i);
+        else
+            M_Buck(i) = 0;
         end
     end
 end
@@ -436,35 +446,45 @@ function [M_Buck] = MfailBuck3(CrossSectionProperties, E, mu, BMD) % case 3, web
 % Calculates bending moments at every value of x that would cause a buckling failure
 % Input: Sectional Properties (list of 1-D arrays), E, mu (material property), BMD (1-D array)
 % Output: M_MatBuck a 1-D array of length n
+    
+    I = CrossSectionProperties(:, 10);
+    b = CrossSectionProperties(:, 9) - CrossSectionProperties(:, 2);
+    yweb = CrossSectionProperties(:, 9) - CrossSectionProperties(:, 2);
+    t = CrossSectionProperties(:, 4);
+
     fail = zeros(1, size(BMD, 2));
     for i = 1 : size(BMD, 2)
-        fail(i) = ((6*(pi^2)*(E))/(12*(1-(mu^2))))*((t/b(i))^2);
-        if yplate > 0
-            if BMD(i) > 0
-                M_Buck(i) = fail(i) * I(i) / yplate
-            else
-                M_Buck(i) = 0
-            end
+        fail(i) = ((6*(pi^2)*(E))/(12*(1-(mu^2))))*((t(i)/b(i))^2);
+        if BMD(i) >= 0
+            M_Buck(i) = fail(i) * I(i) / yweb(i);
         else
-            if BMD(i) < 0
-                M_Buck(i) = fail(i) * I(i) / -yplate
-            else
-                M_Buck(i) = 0
-            end
+            M_Buck(i) = 0;
         end
     end
-end
-%}
-
-%{
-function VisualizePL(x, SFD, BMD, V_Mat, V_Buck, M_MatT, M_MatC, M_Buck1, M_Buck2, M_Buck3, Pf)
-% Plots all outputs of design process
 end
 
 function [Defls] = Deflections(x, BMD, I, E)
 % Calculates deflections
 % Input: I(1-D arrays), E (material property), BMD (1-D array)
 % Output: Deflection for every value of x (1-D array) or for the midspan only
-    Defls = 0;
+    CurvD = BMD ./ I ./ E;
+    Thing = zeros(1, size(x, 2));
+    for i = 17 : size(x, 2)
+        Thing(i) = Thing(i - 1) + (CurvD(i - 1) * (x(i) - 15)); % start changing BMD at (xP + 1) since moment at xP = 0 anyways relative to shear force
+    end
+    PlotDiagrams(x, size(x, 2) - 1, BMD, Thing)
+    %Defls = (Thing(1075) / 2 - Thing(545)); % hardcode cause i'm cool
+
+    IntegralCurvD = BMD ./ I ./ E;
+    for i = 2 : size(BMD, 2)
+        IntegralCurvD(i) = IntegralCurvD(i - 1) + (CurvD(i - 1)); % start changing BMD at (xP + 1) since moment at xP = 0 anyways relative to shear force
+    end
+    %PlotDiagrams(x, size(x, 2) - 1, BMD, IntegralCurvD);
+    Defls = (Thing(1075) / IntegralCurvD(1075) / 2 - Thing(545) / IntegralCurvD(545)); % hardcode cause i'm cool
+    %}
+    % ^^^ NEED TO ACCOUTN FOR CENTROID OF AREAS (idk how to do this
+    Thing(1075);
+    Thing(545);
 end
-%}
+
+% gotta plot the fecal matter too
