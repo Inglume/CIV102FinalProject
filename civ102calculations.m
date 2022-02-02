@@ -149,7 +149,7 @@ function [trainSFD, trainBMD] = ApplyTrainLoad(x, SFD, BMD)
         BMD = zeros(1, size(x, 2));
         By = 0;
         for j = 1 : 6 % for every set of wheels
-            By = By + P / 6 * (wheelSpacing(j) + position(i)) / (xB - xA);
+            By = By + (P / 6 * (wheelSpacing(j) + position(i) - xA));
         end
         By = By / (xB - xA);
         Ay = P - By;
@@ -216,8 +216,8 @@ function PlotTrain (x, L, trainSFD, trainBMD) % include curvature diagram
     ax.XAxisLocation = 'origin';
 
     subplot(2, 1, 2) % BMD
-    for i = 15 : size(x, 2) - trainLength - 15
-        plot(x(i : i + trainLength), trainBMD)
+    for i = 1 : size(trainSFD, 1)
+        plot(x, trainBMD)
         hold on
     end
     hold off
