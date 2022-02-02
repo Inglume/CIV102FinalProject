@@ -8,8 +8,15 @@ BMD = zeros(1, n); % Initialize SFD(x)
 %% 1. Point Loading Analysis (SFD, BMD)
 
 P = 1; % CHANGE THIS probapbly or do some loop
-[SFD_2L, BMD_2L] = ApplyTwoLoads(1, x, SFD, BMD);
-PlotDiagrams(x, L, SFD_2L, BMD_2L)
+SFD = zeros(1, n);
+BMD = zeros(1, n);
+%[SFD2L, BMD2L] = ApplyTwoLoads(1, x, SFD, BMD);
+%PlotDiagrams(x, L, SFD_2L, BMD_2L)
+
+SFD = zeros(1, n);
+BMD = zeros(1, n);
+[SFDTrain, BMDTrain] = ApplyTrainLoad(x, SFD, BMD);
+PlotTrain(x, L, SFDTrain, BMDTrain)
 
 %% 2. Define cross-sections
 % There are many (more elegant ways) to construct cross-section objects
@@ -44,8 +51,6 @@ GeometricInputs(end + 1, :) = [1060, 100, 1.27, 72.46, 1.27, 80, 1.27, 30];
 GeometricInputs(end + 1, :) = [1090, 100, 1.27, 72.46, 1.27, 80, 1.27, 160];
 GeometricInputs(end + 1, :) = [1280, 100, 1.27, 72.46, 1.27, 80, 1.27, 30];
 GeometricInputs(end + 1, :) = [L, 100, 1.27, 72.46, 1.27, 80, 1.27, 30];
-
-
 
 % Optional but you need to ensure that your geometric inputs are correctly implemented
 % VisualizeBridge( {CrossSectionInputs} );
@@ -98,7 +103,7 @@ function [SFD, BMD] = ApplyPL(xP, P, x, SFD, BMD) % don't need this
 % need to account for support reaction forces too
     xA = 15; % location of support A
     xB = 1075; % location of support B
-    By = P * (xP - xA) / (xB - xA); % support B located at 1050mm from support A, support A located at x = 0
+    By = P * (xP - xA) / (xB - xA);
     Ay = P - By; % force equilibrium on x
     
     [SFD, BMD] = UpdateDiagrams(xA, Ay, x, SFD, BMD);
@@ -111,8 +116,8 @@ function [SFD, BMD] = ApplyTwoLoads(P, x, SFD, BMD) % P is force of each individ
     xB = xA + 1060; % location of support B
     xP1 = xA + 550;
     xP2 = xB + 190;
-    By = (P * (xP1 - xA) + P * (xP2 - xA)) / (xB - xA) % support B located at 1050mm from support A, support A located at x = 0
-    Ay = 2 * P - By % force equilibrium on x
+    By = (P * (xP1 - xA) + P * (xP2 - xA)) / (xB - xA); % support B located at 1050mm from support A, support A located at x = 0
+    Ay = 2 * P - By; % force equilibrium on x
     
     [SFD, BMD] = UpdateDiagrams(xA, Ay, x, SFD, BMD);
     [SFD, BMD] = UpdateDiagrams(xB, By, x, SFD, BMD);
@@ -120,23 +125,37 @@ function [SFD, BMD] = ApplyTwoLoads(P, x, SFD, BMD) % P is force of each individ
     [SFD, BMD] = UpdateDiagrams(xP2, -P, x, SFD, BMD);
 end
 
-function [SFD, BMD] = ApplyTrainLoad(x, SFD, BMD)
+function [trainSFD, trainBMD] = ApplyTrainLoad(x, SFD, BMD)
 % Constructs SFD and BMD from application of train Load. Assumes fixed location of supports
 %   Input: location and magnitude of point load. The previous SFD can be entered as input to
 % construct SFD of multiple point loads
-%   Output: SFD, BMD both 1-D arrays of length n
+%   Output: SFD, BMD both 2-D arrays of length n and height i have no idea
 % need to account for support reaction forces too
     P = 400;
     xA = 15; % location of support A
     xB = 1075; % location of support B
-    trainLength = sfas;
-    trainSpacing = adfa;
-    By = P * (xP - xA) / (xB - xA); % support B located at 1050mm from support A, support A located at x = 0
-    Ay = P - By; % force equilibrium on x
+    trainLength = 856; % not including length past wheels at end
+    wheelSpacing = [0, 176, 340, 516, 680, 856]; % location of wheels relative to backmost ones
+    trainSFD = zeros(1, size(x, 2) - trainLength - 15 + 1);
+    trainBMD = zeros(1, size(x, 2) - trainLength - 15 + 1);
     
-    [SFD, BMD] = UpdateDiagrams(xA, Ay, x, SFD, BMD);
-    [SFD, BMD] = UpdateDiagrams(xB, By, x, SFD, BMD);
-    [SFD, BMD] = UpdateDiagrams(xP, -P, x, SFD, BMD);
+    for i = 1 : trainLength + 1
+        By = 0;
+        for j = 1 : 6 % for every set of wheels
+            By = P / 6 * (wheelSpacing(j) + i) / (xB - xA);
+        end
+        By = By / (xB - xA);
+        Ay = P - By;
+        [SFD, BMD] = UpdateDiagrams(xA, Ay, x, SFD, BMD);
+        [SFD, BMD] = UpdateDiagrams(xB, By, x, SFD, BMD);
+        for j = 1 : 6 % for every set of wheels
+            [SFD, BMD] = UpdateDiagrams(wheelSpacing(j) + i + 1, -P / 6, x, SFD, BMD);
+        end
+        trainSFD(end + 1, xA + 1 : size(x, 2) - trainLength - 14) = SFD;
+        trainBMD(end + 1, xA + 1 : size(x, 2) - trainLength - 14) = BMD;
+    end
+    %PlotTrain(x, trainSFD, trainBMD)
+    
 end
 
 function [SFD, BMD] = UpdateDiagrams(xP, P, x, SFD, BMD)
@@ -169,6 +188,32 @@ function PlotDiagrams(x, L, SFD, BMD) % include curvature diagram
     set(ax, 'YDir','reverse') % may not want it reversed, personal preference
     
     set(gcf, 'Name', 'Force and Moment Diagrams') % name of window
+end
+
+function PlotTrain (x, L, SFD, BMD)
+    t = tiledlayout(2,1);
+    ax1 = nexttile;
+    xlim([0 L])
+    xlabel(ax1, "x (mm)")
+    ylabel(ax1, "V (kN)")
+    title(ax1, "Shear Force Diagram")
+    ax1.XAxisLocation = 'origin';
+    hold(ax1, 'on')
+    ax2 = nexttile;
+    xlim([0 L])
+    xlabel(ax2, "x (mm)")
+    ylabel(ax2, "M (kN m)")
+    title(ax2, "Bending Moment Diagram")
+    ax2.XAxisLocation = 'origin';
+    set(ax2, 'YDir','reverse')
+    hold(ax2, 'off')
+
+    for i = 1 : L + 1
+        plot(ax1, x, SFD(i, :))
+        plot(ax2, x, BMD(i, :))
+    end
+
+    title(t, "Diagrams for Train Loading Scenario")
 end
 
 function VisualizeBridge(GeometricInputs)
