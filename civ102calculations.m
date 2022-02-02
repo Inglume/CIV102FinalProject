@@ -9,34 +9,28 @@ BMD = zeros(1, n); % Initialize SFD(x)
 
 P = 1; % temporary, just to help calculate Pfail for two point loads
 
-
 [SFDTrain, BMDTrain] = ApplyTrainLoad(x);
 [SFD2L, BMD2L] = ApplyTwoLoads(1, x, SFD, BMD);
 
-PlotTrain(x, L, SFDTrain, BMDTrain)
+PlotDTrain(x, L, SFDTrain, BMDTrain) % plot train load 
 figure()
-PlotDiagrams(x, L, SFD2L, BMD2L)
+PlotD2(x, L, SFD2L, BMD2L) % plot two point load (with 1 N per point)
 
-SFDTrain = max(SFDTrain(1, :), SFDTrain(2, :));
-BMDTrain = max(BMDTrain(1, :), BMDTrain(2, :));
+SFDTrain = max(SFDTrain(1, :), SFDTrain(2, :)); % combine two SFDs
+BMDTrain = max(BMDTrain(1, :), BMDTrain(2, :)); % combine two BMDs
 
 %% 2. Define cross-sections
 
-% xc : Location, x, of cross-section change
-% bft : Top Flange Width
-% tft : Top Flange Thickness
-% hw : Web Height
-% tw : Web Thickness (Assuming 2 separate webs)
-% bfb : Bottom Flange Width
-% tfb : Bottom Flange Thickness
-% a : Diaphragm Spacing
+% Index #1 - xc : Location, x, of cross-section change
+% Index #2 - bft : Top Flange Width
+% Index #3 - tft : Top Flange Thickness
+% Index #4 - hw : Web Height
+% Index #5 - tw : Web Thickness (Assuming 2 separate webs)
+% Index #6 - bfb : Bottom Flange Width
+% Index #7 - tfb : Bottom Flange Thickness
+% Index #8 - a : Diaphragm Spacing
 
 % Design 0
-
-%% UNCOMMENT THIS IF YOU WANNA SEE HOW THE OUTPUT SHOULD WORK
-% (each of the rows will have the same properties though since only a
-% changes over the distance)
-
 GeometricInputs0 = [];
 
 GeometricInputs0(end + 1, :) = [0, 100, 1.27, 72.46, 1.27, 80, 1.27, 30];
@@ -50,24 +44,23 @@ GeometricInputs0(end + 1, :) = [L, 100, 1.27, 72.46, 1.27, 80, 1.27, 30];
 
 CrossSectionProperties0 = SectionProperties(GeometricInputs0, n);
 
-% Design 1.0000003
-
+% Improved Design
 GeometricInputs = [];
 
 GeometricInputs(end + 1, :) = [0, 100, 2.54, 80, 1.27, 75, 1.27, 5]; % CS #1 with plate
-GeometricInputs(end + 1, :) = [5, 100, 2.54, 80, 1.27, 75, 1.27, 20];
-GeometricInputs(end + 1, :) = [25, 100, 2.54, 80, 1.27, 75, 1.27, 5];
+GeometricInputs(end + 1, :) = [5, 100, 2.54, 80, 1.27, 75, 1.27, 20]; % " "
+GeometricInputs(end + 1, :) = [25, 100, 2.54, 80, 1.27, 75, 1.27, 5]; % " "
 GeometricInputs(end + 1, :) = [30, 100, 2.54, 80, 1.27, 75, 0, 250]; % CS #1
 GeometricInputs(end + 1, :) = [280, 100, 2.54, 80, 1.27 * 3 / 2, 75, 0, 275]; % CS #2
-GeometricInputs(end + 1, :) = [555, 100, 2.54, 80, 1.27 * 3 / 2, 75, 0, 20];
-GeometricInputs(end + 1, :) = [575, 100, 2.54, 80, 1.27 * 3 / 2, 75, 0, 113];
+GeometricInputs(end + 1, :) = [555, 100, 2.54, 80, 1.27 * 3 / 2, 75, 0, 20]; % " "
+GeometricInputs(end + 1, :) = [575, 100, 2.54, 80, 1.27 * 3 / 2, 75, 0, 113]; % " "
 GeometricInputs(end + 1, :) = [688, 100, 2.54, 80, 1.27, 75, 0, 115]; % CS #1
 GeometricInputs(end + 1, :) = [803, 100, 2.54, 80 - 1.27, 1.27 * 3 / 2, 75, 2.54, 262]; % CS #3
-GeometricInputs(end + 1, :) = [1065, 100, 2.54, 80 - 1.27, 1.27 * 3 / 2, 75, 2.54, 20];
-GeometricInputs(end + 1, :) = [1085, 100, 2.54, 80 - 1.27, 1.27 * 3 / 2, 75, 2.54, 170];
-GeometricInputs(end + 1, :) = [1255, 100, 2.54, 80 - 1.27, 1.27, 75, 2.54, 20]; % #4
-GeometricInputs(end + 1, :) = [1275, 100, 2.54, 80 - 1.27, 1.27, 75, 2.54, 5];
-GeometricInputs(end + 1, :) = [L, 100, 2.54, 80 - 1.27, 1.27, 75, 2.54, 5];
+GeometricInputs(end + 1, :) = [1065, 100, 2.54, 80 - 1.27, 1.27 * 3 / 2, 75, 2.54, 20]; % " "
+GeometricInputs(end + 1, :) = [1085, 100, 2.54, 80 - 1.27, 1.27 * 3 / 2, 75, 2.54, 170]; % " "
+GeometricInputs(end + 1, :) = [1255, 100, 2.54, 80 - 1.27, 1.27, 75, 2.54, 20]; % CS #4
+GeometricInputs(end + 1, :) = [1275, 100, 2.54, 80 - 1.27, 1.27, 75, 2.54, 5]; % " "
+GeometricInputs(end + 1, :) = [L, 100, 2.54, 80 - 1.27, 1.27, 75, 2.54, 5]; % " "
 
 CrossSectionProperties = SectionProperties(GeometricInputs, n);
 
@@ -75,29 +68,53 @@ CrossSectionProperties = SectionProperties(GeometricInputs, n);
 SigT = 30; % tensile stress
 SigC = 6; % compressive stress
 E = 4000;
-TauU = 4;
-TauG = 2;
-mu = 0.2;
+TauU = 4; % shear strength of matboard
+TauG = 2; % shear strength of glue
+mu = 0.2; % dissipative something
 
+%{
 for i = 1 : size(GeometricInputs0, 1) - 1
     cs = CrossSectionProperties0(GeometricInputs0(i, 1) + 1, :);
     sprintf("Cross Section @ %d mm - ybot: %.3g mm ytop: %.3g mm I: %.3g mm^4 Qmax: %.3g Qglue: %.3g ", GeometricInputs0(i, 1), cs(8:11), cs(16))
 end
-
+%}
 
 %% 4. Calculate Failure Moments and Shear Forces
 
-Fails0 = GetFails(CrossSectionProperties0, TauU, TauG, E, mu, SigT, SigC, BMD2L);
-Fails = GetFails(CrossSectionProperties, TauU, TauG, E, mu, SigT, SigC, BMD2L);
+% fails : length 10 array for all values for failure force/moment (including 5 cases for flexural buckling failure)
+Fails0 = GetFails(CrossSectionProperties0, TauU, TauG, E, mu, SigT, SigC, BMD2L); % fails for design 0
+Fails = GetFails(CrossSectionProperties, TauU, TauG, E, mu, SigT, SigC, BMD2L); % fails for improved design
 
 %% 4.7 Calculate Failure Load
-Pf0 = FailLoad(SFD2L, BMD2L, Fails0)
-%Pf0 = FailLoad(SFDTrain, BMDTrain, Fails0)
-Pf = FailLoad(SFD2L, BMD2L, Fails)
-%Pf = FailLoad(SFDTrain, BMDTrain, Fails)
 
-Plot2L(x, L, Pf0, CrossSectionProperties0, TauU, TauG, E, mu, SigT, SigC)
-Plot2L(x, L, Pf, CrossSectionProperties, TauU, TauG, E, mu, SigT, SigC)
+% 4.7 b.
+Pf0 = FailLoad(SFD2L, BMD2L, Fails0)
+Pcap0 = FailLoad(SFDTrain, BMDTrain, Fails0);
+Pf = FailLoad(SFD2L, BMD2L, Fails)
+Pcap = FailLoad(SFDTrain, BMDTrain, Fails);
+
+% 4.7 a.
+FOS0 = Pcap0 / 400 % capacity load / demand load
+FOS = Pcap / 400 % capacity load / demand load
+
+% train plots
+FullPlotTrain(x, L, FOS0, CrossSectionProperties0, TauU, TauG, E, mu, SigT, SigC)
+title = strcat("Design 0 w/ FOS: ", num2str(FOS0));
+set(gcf, 'Name', title) % name of window
+%FullPlotTrain(x, L, FOS, CrossSectionProperties, TauU, TauG, E, mu, SigT, SigC)
+%title = ["Improved Design w/ FOS: " num2str(FOS0)];
+%set(gcf, 'Name', title) % name of window
+
+% two point plots
+FullPlot2(x, L, Pf0, CrossSectionProperties0, TauU, TauG, E, mu, SigT, SigC)
+title = strcat("Design 0 w/ Failure: ", num2str(Pf0), "N");
+set(gcf, 'Name', title) % name of window
+FullPlot2(x, L, Pf, CrossSectionProperties, TauU, TauG, E, mu, SigT, SigC)
+title = strcat("Improved Design w/ Failure: ", num2str(Pf), "N");
+set(gcf, 'Name', title) % name of window
+
+
+%include some FOS calclation here
 
 %% 5. Curvature, Slope, Deflections
 %Defls = Deflections(x, BMDTrain, GeometricInputs(10), E);
@@ -179,7 +196,7 @@ function [SFD, BMD] = UpdateDiagrams(xP, P, x, SFD, BMD)
     end
 end
 
-function PlotDiagrams(x, L, SFD, BMD) % include curvature diagram
+function PlotD2(x, L, SFD, BMD) % include curvature diagram
     subplot(2, 1, 1) % SFD
     plot(x, SFD)
     xlim([0 L])
@@ -202,7 +219,7 @@ function PlotDiagrams(x, L, SFD, BMD) % include curvature diagram
     set(gcf, 'Name', 'SFD, BMD of Load Case #2 (two point load)') % name of window
 end
 
-function PlotTrain (x, L, trainSFD, trainBMD) % include curvature diagram
+function PlotDTrain (x, L, trainSFD, trainBMD) % include curvature diagram
     trainLength = size(trainSFD, 2);
     subplot(2, 1, 1) % SFD
     for i = 1 : size(trainSFD, 1)
@@ -511,20 +528,22 @@ function [Pfail] = FailLoad(SFD, BMD, Fails)
     
     mins;
 
-    [Pfail, aaa] = min(mins);
+    [Pfail, aaa] = min(mins); % OUTPUT WHY IT FAILS TOOO
 end
 
 function [Defls] = Deflections(x, BMD, I, E)
 % Calculates deflections
-% Input: I(1-D arrays), E (material property), BMD (1-D array)
+% Input: I (1-D arrays), E (material property), BMD (1-D array)
 % Outputx: Deflection for every value of x (1-D array) or for the midspan only
+    % HARDCODE THIS SHcrap
+    %{
     CurvD = BMD ./ I ./ E;
     Thing = zeros(1, size(x, 2));
     for i = 2 : size(x, 2)
         Thing(i) = Thing(i - 1) + (CurvD(i - 1) * (x(i - 1) - 15)); % start changing BMD at (xP + 1) since moment at xP = 0 anyways relative to shear force
     end
     PlotDiagrams(x, size(x, 2) - 1, BMD, Thing)
-    %Defls = (Thing(1075) / 2 - Thing(545)); % hardcode cause i'm cool
+        %Defls = (Thing(1075) / 2 - Thing(545)); % hardcode cause i'm cool
 
     IntegralCurvD = BMD ./ I ./ E;
     for i = 2 : size(BMD, 2)
@@ -532,14 +551,15 @@ function [Defls] = Deflections(x, BMD, I, E)
     end
     %PlotDiagrams(x, size(x, 2) - 1, BMD, IntegralCurvD);
     Defls = (Thing(1075) / IntegralCurvD(1075) / 2 - Thing(545) / IntegralCurvD(545)); % hardcode cause i'm cool
-    %}
+   
     % ^^^ NEED TO ACCOUTN FOR CENTROID OF AREAS (idk how to do this
     % might have to tdo thing - 15 cause it's offset from suport A
     Thing(1075);
     Thing(545);
+    %}
 end
 
-function Plot2L(x, L, Pf, CrossSectionProperties, TauU, TauG, E, mu, SigT, SigC) % ADD LEGENDS
+function FullPlot2(x, L, Pf, CrossSectionProperties, TauU, TauG, E, mu, SigT, SigC) % ADD LEGENDS
     SFD = zeros(1, size(x, 2));
     BMD = zeros(1, size(x, 2));
     [SFD, BMD] = ApplyTwoLoads(Pf, x, SFD, BMD);
@@ -602,10 +622,10 @@ function Plot2L(x, L, Pf, CrossSectionProperties, TauU, TauG, E, mu, SigT, SigC)
     plot(x, Fails(5, :), "g")
     hold off
     xlim([0 L])
-    title("BMD vs. Material Moment Failures")
+    title("BMD vs. Flexural Moment Failures")
     xlabel("x (mm)")
     ylabel("M (N mm)")
-    legend("BMD", "Flange Moment", "Web Moment")
+    legend("BMD", "Tension Moment", "Compression Moment")
     ax = gca;
     ax.XAxisLocation = 'origin';
     set(ax, 'YDir','reverse') % may not want it reversed, personal preference
@@ -623,11 +643,123 @@ function Plot2L(x, L, Pf, CrossSectionProperties, TauU, TauG, E, mu, SigT, SigC)
     title("BMD vs. Plate Buckling Failures")
     xlabel("x (mm)")
     ylabel("M (N mm)")
-    legend("SFD", "Mid Flange Buck.", "Side Flange Buck.", "Top Web Buck.", "Bottom Web Buck.", "Bottom Flange Buck.", 'Location', "southeast")
+    legend("BMD", "Mid Flange Buck.", "Side Flange Buck.", "Top Web Buck.", "Bottom Web Buck.", "Bottom Flange Buck.", 'Location', "southeast")
     ax = gca;
     ax.XAxisLocation = 'origin';
     set(ax, 'YDir','reverse') % may not want it reversed, personal preference
 
-    set(gcf, 'Name', 'Failure Loads of Improved Design') % name of window
+    %set(gcf, 'Name', 'Failure Loads of Improved Design') % name of window
 end
 
+function FullPlotTrain(x, FOS, L, CrossSectionProperties, TauU, TauG, E, mu, SigT, SigC) % ADD LEGENDS
+    SFD = zeros(1, size(x, 2));
+    BMD = zeros(1, size(x, 2));
+    [SFD, BMD] = ApplyTrainLoad(x);
+
+    SFD = max(SFD(1, :), SFD(2, :)); % combine two SFDs
+    BMD = max(BMD(1, :), BMD(2, :)); % combine two BMDs
+
+    SFDBig = SFD * FOS;
+    BMDBig = BMD * FOS;
+
+    %% GOTTA FIX THIS SFDBIG DOESNOT PLOT PROGRPERly
+
+    Fails = GetFails(CrossSectionProperties, TauU, TauG, E, mu, SigT, SigC, BMD);
+
+    figure()
+    subplot(2, 3, 1) % SFD
+    plot(x, SFD, "k")
+    hold on
+    plot(x, SFDBig, "--k")
+    hold off
+    xlim([0 L])
+    title("Shear Force over Horizontal Distance")
+    xlabel("x (mm)")
+    ylabel("V (N)")
+    legend("SFD", "SFD w/ FOS")
+    ax = gca;
+    ax.XAxisLocation = 'origin';
+
+    subplot(2, 3, 2) % SFD w/ material and glue shear failure
+    plot(x, SFD, "k")
+    hold on
+    plot(x, SFDBig, "--k")
+    plot(x, Fails(1, :), "r")
+    plot(x, Fails(2, :), "g")
+    plot(x, -Fails(1, :), "r")
+    plot(x, -Fails(2, :), "g")
+    hold off
+    xlim([0 L])
+    title("SFD vs. Material and Glue Shear Failures")
+    xlabel("x (mm)")
+    ylabel("V (N)")
+    legend("SFD", "SFD w/ FOS", "Material Shear", "Glue Shear")
+    ax = gca;
+    ax.XAxisLocation = 'origin';
+
+    subplot(2, 3, 3) % SFD w/ shear buckling failure
+    plot(x, SFD, "k")
+    hold on
+    plot(x, SFDBig, "--k")
+    plot(x, Fails(3, :), "r")
+    plot(x, -Fails(3, :), "r")
+    hold off
+    xlim([0 L])
+    title("SFD vs. Shear Buckling Failure")
+    xlabel("x (mm)")
+    ylabel("V (N)")
+    legend("SFD", "SFD w/ FOS", "Shear Buck.")
+    ax = gca;
+    ax.XAxisLocation = 'origin';
+
+    subplot(2, 3, 4) % BMD
+    plot(x, BMD, "k")
+    hold on
+    plot(x, BMDBig, "--k")
+    hold off
+    xlim([0 L])
+    title("Bending Moment over Horizontal Distance")
+    xlabel("x (mm)")
+    ylabel("M (N mm)")
+    legend("BMD", "BMD w/ FOS")
+    ax = gca;
+    ax.XAxisLocation = 'origin';
+    set(ax, 'YDir','reverse') % may not want it reversed, personal preference
+    
+    subplot(2, 3, 5) % BMD w/ material moment failure
+    plot(x, BMD, "k")
+    hold on
+    plot(x, BMDBig, "--k")
+    plot(x, Fails(4, :), "r")
+    plot(x, Fails(5, :), "g")
+    hold off
+    xlim([0 L])
+    title("BMD vs. Flexural Moment Failures")
+    xlabel("x (mm)")
+    ylabel("M (N mm)")
+    legend("BMD", "BMD w/ FOS", "Tension Moment", "Compression Moment")
+    ax = gca;
+    ax.XAxisLocation = 'origin';
+    set(ax, 'YDir','reverse') % may not want it reversed, personal preference
+
+    subplot(2, 3, 6) % BMD w/ moment buckling failure (plate buckling)
+    plot(x, BMD, "k")
+    hold on
+    plot(x, BMDBig, "--k")
+    plot(x, Fails(6, :), "r")
+    plot(x, Fails(7, :), "g")
+    plot(x, Fails(8, :), "b")
+    plot(x, Fails(9, :), "y")
+    plot(x, Fails(10, :), "m")
+    hold off
+    xlim([0 L])
+    title("BMD vs. Plate Buckling Failures")
+    xlabel("x (mm)")
+    ylabel("M (N mm)")
+    legend("BMD", "BMD w/ FOS", "Mid Flange Buck.", "Side Flange Buck.", "Top Web Buck.", "Bottom Web Buck.", "Bottom Flange Buck.", 'Location', "southeast")
+    ax = gca;
+    ax.XAxisLocation = 'origin';
+    set(ax, 'YDir','reverse') % may not want it reversed, personal preference
+
+    %set(gcf, 'Name', 'Improved Design') % name of window
+end
