@@ -649,6 +649,6 @@ function Plot2L(x, L, Pf, CrossSectionProperties, TauU, TauG, E, mu, SigT, SigC)
     ax.XAxisLocation = 'origin';
     set(ax, 'YDir','reverse') % may not want it reversed, personal preference
 
-    set(gcf, 'Name', 'CALCULATIONS') % name of window
+    set(gcf, 'Name', 'Failure Loads of Improved Design') % name of window
 end
 
